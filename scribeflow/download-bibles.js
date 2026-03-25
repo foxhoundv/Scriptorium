@@ -143,9 +143,21 @@ const CHAPTER_COUNTS = {
 // Total chapters across all 66 books = 1,189
 const TOTAL_CHAPTERS = Object.values(CHAPTER_COUNTS).reduce((a, b) => a + b, 0);
 
-// Book slugs in BOOKS[] use hyphens (e.g. 'song-of-solomon', '1-samuel').
-// These are the exact folder names used in the CDN — no conversion needed.
-// Hyphens are valid URL characters and must NOT be converted to spaces.
+// CDN slug probing — tries multiple slug variants until one returns HTTP 200.
+// Caches the working format per book so only one probe per book is needed.
+const ORDINALS = ['first','second','third'];
+function slugVariants(slug) {
+  const variants = [slug];
+  const dm = slug.match(/^([0-9]+)-(.+)$/);
+  if (dm) {
+    variants.push(dm[1] + dm[2]);
+    const ord = ORDINALS[parseInt(dm[1]) - 1];
+    if (ord) { variants.push(ord + '-' + dm[2]); variants.push(ord + dm[2]); }
+  }
+  if (slug.includes('-')) variants.push(slug.replace(/-/g, ''));
+  return variants.filter((v, i, a) => a.indexOf(v) === i);
+}
+const cdnSlugCache = {};
 
 // ── HTTP HELPER ───────────────────────────────────────────────────────────
 function get(url, attempt) {
@@ -226,7 +238,17 @@ async function fetchTranslation(t) {
 
       while (retries > 0) {
         try {
-          const url  = CDN + '/' + t.id + '/books/' + book + '/chapters/' + ch + '.json';
+          // Resolve CDN slug on first use of this book
+        const cacheKey = t.id + ':' + book;
+        if (!cdnSlugCache[cacheKey]) {
+          const candidates = slugVariants(book);
+          let resolved = null;
+          for (const candidate of candidates) {
+            try { await get(CDN + '/' + t.id + '/books/' + candidate + '/chapters/1.json'); resolved = candidate; break; } catch(e) {}
+          }
+          cdnSlugCache[cacheKey] = resolved || book;
+        }
+        const url  = CDN + '/' + t.id + '/books/' + cdnSlugCache[t.id + ':' + book] + '/chapters/' + ch + '.json';
           const data = await get(url);
           // Normalise to array of {verse, text}
           const verses = Array.isArray(data.verses) ? data.verses

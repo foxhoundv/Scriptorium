@@ -103,9 +103,55 @@ const CHAPTER_COUNTS = {
 
 const TOTAL_CHAPTERS = Object.values(CHAPTER_COUNTS).reduce((a, b) => a + b, 0); // 1,189
 
-// Book slugs in BOOKS[] use hyphens (e.g. 'song-of-solomon', '1-samuel').
-// These are the exact folder names used in the CDN — no conversion needed.
-// Hyphens are valid URL characters and must NOT be converted to spaces.
+// ── CDN SLUG PROBING ─────────────────────────────────────────────────────
+// The CDN's actual folder names for numbered/multi-word books are not always
+// the same as our internal hyphenated slugs.  We probe on first use and
+// cache the working format so every subsequent chapter uses it immediately.
+//
+// Candidates tried in order for any slug that starts with a digit or
+// contains a hyphen:
+//   1. Original slug as-is          e.g.  1-samuel
+//   2. Digit fused, rest hyphened   e.g.  1samuel     (no hyphen after digit)
+//   3. All hyphens removed          e.g.  1samuel → same as #2 for most
+//   4. Written-out ordinal          e.g.  first-samuel
+//
+// For song-of-solomon specifically we also try:
+//   songofsolomon, song-of-solomon (original)
+//
+// The first variant that returns HTTP 200 is cached and used for every
+// remaining chapter of that book.
+
+const ORDINALS = ['first','second','third'];
+
+function slugVariants(slug) {
+  const variants = [slug]; // always try original first
+
+  // Digit-prefixed books: try fusing the number to the rest
+  const digitMatch = slug.match(/^(\d+)-(.+)$/);
+  if (digitMatch) {
+    const num  = digitMatch[1];
+    const rest = digitMatch[2];
+    variants.push(num + rest);                          // e.g. 1samuel
+    variants.push(num + '-' + rest.replace(/-/g, ''));  // e.g. 1-samuel (same as orig — dedupe below)
+    const ordinal = ORDINALS[parseInt(num) - 1];
+    if (ordinal) {
+      variants.push(ordinal + '-' + rest);              // e.g. first-samuel
+      variants.push(ordinal + rest);                    // e.g. firstsamuel
+    }
+  }
+
+  // Multi-word books: also try with all hyphens removed
+  if (slug.includes('-')) {
+    variants.push(slug.replace(/-/g, ''));              // e.g. songofsolomon
+  }
+
+  // Deduplicate while preserving order
+  return variants.filter((v, i, a) => a.indexOf(v) === i);
+}
+
+// Per-translation cache: slug -> resolved CDN path segment
+// Populated on first successful fetch of each book.
+const cdnSlugCache = {};
 
 // ── HTTP ─────────────────────────────────────────────────────────────────
 
@@ -247,12 +293,35 @@ async function processTranslation(t) {
     const { book, chapter } = gaps[i];
     progress(i, gaps.length, BOOK_NAMES[book] + ' ' + chapter);
 
+    // Resolve CDN slug (probe on first use of each book, then use cache)
+    const cacheKey = t.id + ':' + book;
+    if (!cdnSlugCache[cacheKey]) {
+      const candidates = slugVariants(book);
+      let resolved = null;
+      for (const candidate of candidates) {
+        const probeUrl = CDN + '/' + t.id + '/books/' + candidate + '/chapters/1.json';
+        try {
+          await httpGet(probeUrl);
+          resolved = candidate;
+          if (candidate !== book) {
+            process.stdout.write('\n');
+            console.log('  [PROBE] ' + BOOK_NAMES[book] + ': CDN uses "' + candidate + '" (not "' + book + '")');
+          }
+          break;
+        } catch (e) {
+          // try next candidate
+        }
+      }
+      cdnSlugCache[cacheKey] = resolved || book; // fall back to original if nothing worked
+    }
+    const cdnSlug = cdnSlugCache[cacheKey];
+
     let retries = 5;
     let backoff = 600;
 
     while (retries > 0) {
       try {
-        const url    = CDN + '/' + t.id + '/books/' + book + '/chapters/' + chapter + '.json';
+        const url    = CDN + '/' + t.id + '/books/' + cdnSlug + '/chapters/' + chapter + '.json';
         const data   = await httpGet(url);
         const verses = Array.isArray(data.verses) ? data.verses
                      : Array.isArray(data)        ? data
@@ -268,7 +337,7 @@ async function processTranslation(t) {
         if (retries === 0) {
           process.stdout.write('\n');
           console.warn('  [WARN] ' + t.label + ' ' + BOOK_NAMES[book] + ' ' + chapter + ': ' + err.message + ' \u2014 will retry next run');
-          bible.books[book].chapters[chapter] = []; // keep as empty so next run picks it up
+          bible.books[book].chapters[chapter] = [];
           failed++;
         } else {
           await sleep(backoff);

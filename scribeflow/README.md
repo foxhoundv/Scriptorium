@@ -1,6 +1,6 @@
 # ScribeFlow — Self-Hosted Writing Workspace
 
-> Current version: **v1.2**  
+> Current version: **v1.3**  
 > A Scrivener-inspired writing application designed to run entirely on your own server via Docker or Proxmox LXC. No subscriptions, no cloud, no external dependencies at runtime.
 
 ---

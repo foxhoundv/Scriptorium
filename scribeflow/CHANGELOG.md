@@ -4,6 +4,20 @@ All notable changes are documented here. Version increments by tenths.
 
 ---
 
+## Version 1.3
+
+### Bug Fix
+
+**Bible fetcher — 403 on numbered and multi-word books (self-probing fix)**
+- The CDN's actual folder naming for books like "1 Samuel", "Song of Solomon", "1 Corinthians" is unknown without network access, and has caused persistent 403 errors across multiple fix attempts.
+- Replaced all hardcoded slug assumptions with a self-probing mechanism: on first encounter of each book, the fetcher silently tries up to 4 URL variants in order until one returns HTTP 200, then caches that working format for all remaining chapters of the same book.
+- Variants tried (in order): `1-samuel`, `1samuel`, `first-samuel`, `firstsamuel`; for Song of Solomon: `song-of-solomon`, `songofsolomon`; single-word books like `genesis` or `matthew` are tried as-is with no probing overhead.
+- The cache is per translation per book, so each translation only probes once per ambiguous book.
+- The working slug is logged when it differs from the original: `[PROBE] 1 Samuel: CDN uses "1samuel" (not "1-samuel")`
+- Fix applied to both `backend/scripts/fetch-bibles.js` and `download-bibles.js`.
+- Re-running the fetcher will probe and fill all previously-failed chapters automatically.
+
+
 ## Version 1.2
 
 ### Bug Fix
@@ -187,6 +201,7 @@ node /opt/scribeflow/backend/scripts/fetch-bibles.js  # fetch Bible data separat
 | Version | Date | Summary |
 |---------|------|---------|
 | 1.1 | 2026-03 | Hot-link fallback names + export replacement |
+| 1.3 | 2026-03 | Bible fetcher self-probing CDN slug detection |
 | 1.2 | 2026-03 | Bible fetcher 403 fix — revert %20 encoding |
 | 1.1 | 2026-03 | Bible fetcher book name encoding fix (reverted) |
 | 1.0 | 2026-03 | Project type labels on home screen |
