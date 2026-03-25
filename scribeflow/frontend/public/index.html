@@ -2637,6 +2637,14 @@ let settingsOpen = false;
 
 function openSettings() {
   if (!currentProject) { alert('Open a project first.'); return; }
+
+  // Show the overlay immediately (before field population so any JS error
+  // in the data-fill code doesn't prevent the modal from appearing at all)
+  const overlay = document.getElementById('settings-overlay');
+  overlay.style.display = 'flex';
+  overlay.classList.add('open');
+  settingsOpen = true;
+
   const s = currentProject.settings || {};
   document.getElementById('settings-project-name').textContent = currentProject.title;
 
@@ -2677,32 +2685,13 @@ function openSettings() {
   if (targetTab) targetTab.classList.add('active');
   if (targetSection) targetSection.classList.add('active');
   openSettings._pendingTab = null; // reset for next open
-
-  const overlay = document.getElementById('settings-overlay');
-  overlay.style.display    = 'flex';
-  overlay.style.opacity    = '0';
-  overlay.style.transition = 'opacity 0.2s';
-  // Double-rAF ensures the browser has painted display:flex before
-  // the opacity transition starts (required in Firefox and some WebKit builds)
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    overlay.style.opacity = '1';
-    overlay.classList.add('open');
-  }));
-  settingsOpen = true;
 }
 
 function closeSettings() {
   const overlay = document.getElementById('settings-overlay');
   overlay.classList.remove('open');
-  overlay.style.opacity = '0';
+  overlay.style.display = 'none';
   settingsOpen = false;
-  setTimeout(() => {
-    if (!overlay.classList.contains('open')) {
-      overlay.style.display   = 'none';
-      overlay.style.opacity   = '';
-      overlay.style.transition = '';
-    }
-  }, 250);
 }
 
 function updateGoalProgress() {
