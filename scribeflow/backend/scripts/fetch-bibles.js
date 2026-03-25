@@ -1,11 +1,16 @@
 #!/usr/bin/env node
 /**
- * ScribeFlow — Bible Data Fetcher  (v4)
+ * ScribeFlow — Bible Data Fetcher  (v6)
  * ═══════════════════════════════════════════════════════════════════════
  *
  * Fetches complete public-domain Bible translations from bible-api.com
- * using natural-language chapter references (e.g. "1 Samuel 1").
- * This avoids all CDN path-naming issues that affected earlier versions.
+ * using its PARAMETERIZED API:
+ *
+ *   https://bible-api.com/data/{translation}/books/{BOOK_ID}/chapters/{n}/verses.json
+ *
+ * Book IDs are 3-letter uppercase codes (GEN, 1SA, SNG, 1CO, REV, etc.)
+ * with NO spaces anywhere in the URL path — completely avoids the %20
+ * encoding issues that caused HTTP 403 errors in previous versions.
  *
  * On every run:
  *   1. Audits translation files already on disk
@@ -13,21 +18,12 @@
  *   3. Re-fetches ONLY those chapters
  *   4. Patches data in-place and rewrites index.json
  *
- * Source  : https://bible-api.com  (Tim Morgan, open source)
+ * Source  : https://bible-api.com  (github.com/timmorgan/bible-api)
  * License : Bible text is public domain for all included translations
- *
- * Translations:
- *   KJV   — King James Version (1769)
- *   ASV   — American Standard Version (1901)
- *   WEB   — World English Bible
- *   BBE   — Bible in Basic English
- *   YLT   — Young's Literal Translation
- *   Darby — Darby Translation
  *
  * Usage:
  *   node scripts/fetch-bibles.js
  *   docker compose run --rm bible-fetcher
- * ═══════════════════════════════════════════════════════════════════════
  */
 
 'use strict';
@@ -49,25 +45,30 @@ const TRANSLATIONS = [
   { id: 'darby', label: 'Darby', name: 'Darby Translation' },
 ];
 
-const BOOKS = [
-  'genesis','exodus','leviticus','numbers','deuteronomy',
-  'joshua','judges','ruth','1-samuel','2-samuel',
-  '1-kings','2-kings','1-chronicles','2-chronicles',
-  'ezra','nehemiah','esther','job','psalms','proverbs',
-  'ecclesiastes','song-of-solomon','isaiah','jeremiah',
-  'lamentations','ezekiel','daniel','hosea','joel','amos',
-  'obadiah','jonah','micah','nahum','habakkuk','zephaniah',
-  'haggai','zechariah','malachi',
-  'matthew','mark','luke','john','acts',
-  'romans','1-corinthians','2-corinthians','galatians',
-  'ephesians','philippians','colossians',
-  '1-thessalonians','2-thessalonians',
-  '1-timothy','2-timothy','titus','philemon',
-  'hebrews','james','1-peter','2-peter',
-  '1-john','2-john','3-john','jude','revelation',
-];
+// Internal slug -> 3-letter book ID used by bible-api.com parameterized API
+// No spaces anywhere — completely avoids %20 encoding issues
+const BOOK_IDS = {
+  'genesis':'GEN','exodus':'EXO','leviticus':'LEV','numbers':'NUM',
+  'deuteronomy':'DEU','joshua':'JOS','judges':'JDG','ruth':'RUT',
+  '1-samuel':'1SA','2-samuel':'2SA','1-kings':'1KI','2-kings':'2KI',
+  '1-chronicles':'1CH','2-chronicles':'2CH','ezra':'EZR','nehemiah':'NEH',
+  'esther':'EST','job':'JOB','psalms':'PSA','proverbs':'PRO',
+  'ecclesiastes':'ECC','song-of-solomon':'SNG','isaiah':'ISA',
+  'jeremiah':'JER','lamentations':'LAM','ezekiel':'EZK','daniel':'DAN',
+  'hosea':'HOS','joel':'JOL','amos':'AMO','obadiah':'OBA','jonah':'JON',
+  'micah':'MIC','nahum':'NAH','habakkuk':'HAB','zephaniah':'ZEP',
+  'haggai':'HAG','zechariah':'ZEC','malachi':'MAL',
+  'matthew':'MAT','mark':'MRK','luke':'LUK','john':'JHN','acts':'ACT',
+  'romans':'ROM','1-corinthians':'1CO','2-corinthians':'2CO',
+  'galatians':'GAL','ephesians':'EPH','philippians':'PHP','colossians':'COL',
+  '1-thessalonians':'1TH','2-thessalonians':'2TH','1-timothy':'1TI',
+  '2-timothy':'2TI','titus':'TIT','philemon':'PHM','hebrews':'HEB',
+  'james':'JAS','1-peter':'1PE','2-peter':'2PE','1-john':'1JN',
+  '2-john':'2JN','3-john':'3JN','jude':'JUD','revelation':'REV',
+};
 
-// Display names used as the reference string sent to bible-api.com
+const BOOKS = Object.keys(BOOK_IDS);
+
 const BOOK_NAMES = {
   'genesis':'Genesis','exodus':'Exodus','leviticus':'Leviticus',
   'numbers':'Numbers','deuteronomy':'Deuteronomy','joshua':'Joshua',
@@ -112,14 +113,30 @@ const CHAPTER_COUNTS = {
   '1-john':5,'2-john':1,'3-john':1,'jude':1,'revelation':22,
 };
 
-const TOTAL_CHAPTERS = Object.values(CHAPTER_COUNTS).reduce((a, b) => a + b, 0); // 1,189
+const TOTAL_CHAPTERS = Object.values(CHAPTER_COUNTS).reduce((a, b) => a + b, 0);
 
 // ── HTTP ─────────────────────────────────────────────────────────────────
 
 function httpGet(url) {
   return new Promise((resolve, reject) => {
     const client = url.startsWith('https') ? https : http;
-    const req = client.get(url, { timeout: 30000 }, (res) => {
+    const parsed = require('url').parse(url);
+    const options = {
+      hostname: parsed.hostname,
+      port:     parsed.port,
+      path:     parsed.path,
+      method:   'GET',
+      timeout:  30000,
+      headers: {
+        'User-Agent':      'Mozilla/5.0 (compatible; ScribeFlow-BibleFetcher/1.6)',
+        'Accept':          'application/json, text/plain, */*',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Cache-Control':   'no-cache',
+        'Connection':      'keep-alive',
+      }
+    };
+    const req = client.request(options, (res) => {
       if (res.statusCode === 301 || res.statusCode === 302) {
         res.resume();
         return resolve(httpGet(res.headers.location));
@@ -128,26 +145,33 @@ function httpGet(url) {
         res.resume();
         return reject(new Error('HTTP ' + res.statusCode));
       }
+      const zlib     = require('zlib');
+      const encoding = (res.headers['content-encoding'] || '').toLowerCase();
+      let stream = res;
+      if      (encoding === 'gzip')    stream = res.pipe(zlib.createGunzip());
+      else if (encoding === 'deflate') stream = res.pipe(zlib.createInflate());
+      else if (encoding === 'br')      stream = res.pipe(zlib.createBrotliDecompress());
       const chunks = [];
-      res.on('data', c => chunks.push(c));
-      res.on('end', () => {
-        try { resolve(JSON.parse(Buffer.concat(chunks).toString('utf8'))); }
-        catch (e) { reject(new Error('JSON parse failed')); }
+      stream.on('data',  c => chunks.push(c));
+      stream.on('end',   () => {
+        try   { resolve(JSON.parse(Buffer.concat(chunks).toString('utf8'))); }
+        catch (e) { reject(new Error('JSON parse failed: ' + e.message)); }
       });
-      res.on('error', reject);
+      stream.on('error', reject);
     });
-    req.on('error', reject);
+    req.on('error',   reject);
     req.on('timeout', () => { req.destroy(); reject(new Error('Request timed out')); });
+    req.end();
   });
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-// Build bible-api.com URL for a full chapter.
-// Uses the display name (e.g. "1 Samuel") as the reference — no path issues.
+// Build the parameterized chapter URL — no spaces in path, ever.
+// e.g. https://bible-api.com/data/kjv/books/1SA/chapters/1/verses.json
 function chapterUrl(bookSlug, chapter, translationId) {
-  const ref = BOOK_NAMES[bookSlug] + ' ' + chapter;
-  return BASE_URL + '/' + encodeURIComponent(ref) + '?translation=' + translationId;
+  const bookId = BOOK_IDS[bookSlug];
+  return BASE_URL + '/data/' + translationId + '/books/' + bookId + '/chapters/' + chapter + '/verses.json';
 }
 
 // ── AUDIT ─────────────────────────────────────────────────────────────────
@@ -161,7 +185,6 @@ function auditTranslation(t) {
       bible = JSON.parse(fs.readFileSync(filePath, 'utf8'));
     } catch (e) {
       console.warn('  [WARN] ' + t.label + ': file unreadable (' + e.message + ') — rebuilding');
-      bible = null;
     }
   }
 
@@ -180,35 +203,29 @@ function auditTranslation(t) {
 
   const gaps = [];
   for (const book of BOOKS) {
-    const expected = CHAPTER_COUNTS[book];
-    const stored   = bible.books[book].chapters;
-    for (let ch = 1; ch <= expected; ch++) {
-      const data = stored[ch];
-      if (!data || !Array.isArray(data) || data.length === 0) {
-        gaps.push({ book, chapter: ch });
-      }
+    const stored = bible.books[book].chapters;
+    for (let ch = 1; ch <= CHAPTER_COUNTS[book]; ch++) {
+      const d = stored[ch];
+      if (!d || !Array.isArray(d) || d.length === 0) gaps.push({ book, chapter: ch });
     }
   }
 
   return { bible, gaps, filePath };
 }
 
-// ── RANGE SUMMARY ────────────────────────────────────────────────────────
+// ── HELPERS ───────────────────────────────────────────────────────────────
 
 function toRanges(nums) {
-  if (!nums.length) return '';
-  const sorted = [...nums].sort((a, b) => a - b);
-  const ranges = [];
-  let start = sorted[0], prev = sorted[0];
-  for (let i = 1; i <= sorted.length; i++) {
-    if (i < sorted.length && sorted[i] === prev + 1) { prev = sorted[i]; continue; }
-    ranges.push(start === prev ? String(start) : start + '-' + prev);
-    if (i < sorted.length) { start = sorted[i]; prev = sorted[i]; }
+  const s = [...nums].sort((a, b) => a - b);
+  const out = [];
+  let start = s[0], prev = s[0];
+  for (let i = 1; i <= s.length; i++) {
+    if (i < s.length && s[i] === prev + 1) { prev = s[i]; continue; }
+    out.push(start === prev ? String(start) : start + '-' + prev);
+    if (i < s.length) { start = s[i]; prev = s[i]; }
   }
-  return ranges.join(', ');
+  return out.join(', ');
 }
-
-// ── PROGRESS ─────────────────────────────────────────────────────────────
 
 function progress(done, total, label) {
   const pct  = total ? Math.floor(done / total * 100) : 100;
@@ -226,50 +243,41 @@ async function processTranslation(t) {
 
   if (gaps.length === 0) {
     const mb = fs.existsSync(filePath)
-      ? ' (' + (fs.statSync(filePath).size / 1024 / 1024).toFixed(1) + ' MB)'
-      : '';
+      ? ' (' + (fs.statSync(filePath).size / 1024 / 1024).toFixed(1) + ' MB)' : '';
     console.log('  \u2713  Complete \u2014 all ' + TOTAL_CHAPTERS + ' chapters present' + mb);
     return { fetched: 0, failed: 0 };
   }
 
   const byBook = {};
   for (const g of gaps) { (byBook[g.book] = byBook[g.book] || []).push(g.chapter); }
-  const bookCount = Object.keys(byBook).length;
-  console.log('  \u2717  ' + gaps.length + ' gap(s) in ' + bookCount + ' book(s):');
+  console.log('  \u2717  ' + gaps.length + ' gap(s) in ' + Object.keys(byBook).length + ' book(s):');
   for (const book of BOOKS) {
     if (!byBook[book]) continue;
     console.log('       ' + BOOK_NAMES[book].padEnd(24) + 'ch. ' + toRanges(byBook[book]));
   }
-  console.log('  Fetching from bible-api.com\u2026');
+  console.log('  Fetching\u2026');
 
-  let fetched = 0;
-  let failed  = 0;
+  let fetched = 0, failed = 0;
 
   for (let i = 0; i < gaps.length; i++) {
     const { book, chapter } = gaps[i];
     progress(i, gaps.length, BOOK_NAMES[book] + ' ' + chapter);
 
-    let retries = 5;
-    let backoff = 800;
-
+    let retries = 5, backoff = 800;
     while (retries > 0) {
       try {
         const url  = chapterUrl(book, chapter, t.id);
         const data = await httpGet(url);
 
-        if (data.error) throw new Error(data.error);
-
-        // bible-api.com returns { verses: [{book_id, chapter, verse, text}] }
+        // Parameterized API returns { verses: [{verse_id, book_id, chapter, verse, text}] }
         const verses = Array.isArray(data.verses) ? data.verses : [];
-        bible.books[book].chapters[chapter] = verses.map(function(v) {
-          return { verse: v.verse, text: (v.text || '').trim() };
-        });
+        if (verses.length === 0) throw new Error('Empty response');
 
-        if (bible.books[book].chapters[chapter].length === 0) {
-          throw new Error('Empty response');
-        }
-
-        await sleep(150); // bible-api.com rate limit is generous but be polite
+        bible.books[book].chapters[chapter] = verses.map(v => ({
+          verse: v.verse,
+          text:  (v.text || '').trim(),
+        }));
+        await sleep(120);
         fetched++;
         break;
       } catch (err) {
@@ -297,7 +305,6 @@ async function processTranslation(t) {
   } else {
     console.log('  \u26A0  ' + fetched + ' fetched, ' + failed + ' still empty \u2014 re-run to retry');
   }
-
   return { fetched, failed };
 }
 
@@ -305,14 +312,13 @@ async function processTranslation(t) {
 
 function writeIndex() {
   const index = TRANSLATIONS
-    .filter(function(t) {
+    .filter(t => {
       const f = path.join(OUT_DIR, t.label.toLowerCase() + '.json');
       if (!fs.existsSync(f)) return false;
       try { const d = JSON.parse(fs.readFileSync(f, 'utf8')); return d && typeof d.books === 'object'; }
       catch (e) { return false; }
     })
-    .map(function(t) { return { id: t.label.toLowerCase(), label: t.label, name: t.name }; });
-
+    .map(t => ({ id: t.label.toLowerCase(), label: t.label, name: t.name }));
   fs.writeFileSync(path.join(OUT_DIR, 'index.json'), JSON.stringify(index, null, 2));
   return index.length;
 }
@@ -321,35 +327,29 @@ function writeIndex() {
 
 async function main() {
   fs.mkdirSync(OUT_DIR, { recursive: true });
-
   const line = '='.repeat(60);
   console.log('\n' + line);
   console.log('  ScribeFlow Bible Fetcher');
-  console.log('  Source  : bible-api.com (chapter-level reference lookup)');
+  console.log('  Source  : bible-api.com (parameterized API, no spaces in URLs)');
   console.log('  Output  : ' + OUT_DIR);
   console.log('  Books   : ' + BOOKS.length + '  *  Chapters : ' + TOTAL_CHAPTERS);
   console.log(line);
-
   console.log('\n  Auditing existing files...\n');
 
   const work = [];
   for (const t of TRANSLATIONS) {
-    const filePath = path.join(OUT_DIR, t.label.toLowerCase() + '.json');
-    const exists   = fs.existsSync(filePath);
+    const fp     = path.join(OUT_DIR, t.label.toLowerCase() + '.json');
+    const exists = fs.existsSync(fp);
     const { gaps } = auditTranslation(t);
-    work.push({ t, gaps, exists });
-
+    work.push({ t, gaps });
     const icon   = (gaps.length === 0 && exists) ? '\u2713' : '\u2717';
-    const status = !exists
-      ? 'not downloaded yet'
-      : gaps.length === 0
-        ? 'complete  (' + (fs.statSync(filePath).size / 1024 / 1024).toFixed(1) + ' MB)'
-        : gaps.length + ' chapter(s) missing or empty';
+    const status = !exists ? 'not downloaded yet'
+                 : gaps.length === 0 ? 'complete  (' + (fs.statSync(fp).size/1024/1024).toFixed(1) + ' MB)'
+                 : gaps.length + ' chapter(s) missing or empty';
     console.log('  ' + icon + '  ' + t.label.padEnd(7) + status);
   }
 
-  const totalGaps = work.reduce(function(n, r) { return n + r.gaps.length; }, 0);
-
+  const totalGaps = work.reduce((n, r) => n + r.gaps.length, 0);
   if (totalGaps === 0) {
     console.log('\n' + line);
     console.log('  All translations complete. Nothing to fetch.');
@@ -358,17 +358,15 @@ async function main() {
     return;
   }
 
-  const needWork = work.filter(function(r) { return r.gaps.length > 0; });
+  const needWork = work.filter(r => r.gaps.length > 0);
   console.log('\n  ' + totalGaps + ' gap(s) across ' + needWork.length + ' translation(s).');
 
-  let totalFetched = 0;
-  let totalFailed  = 0;
-
+  let totalFetched = 0, totalFailed = 0;
   for (const { t } of needWork) {
     try {
-      const result = await processTranslation(t);
-      totalFetched += result.fetched;
-      totalFailed  += result.failed;
+      const r = await processTranslation(t);
+      totalFetched += r.fetched;
+      totalFailed  += r.failed;
     } catch (err) {
       console.error('\n  [ERROR] ' + t.label + ': ' + err.message);
       totalFailed++;
@@ -379,16 +377,12 @@ async function main() {
   console.log('\n' + line);
   console.log('  Run complete.');
   console.log('  Chapters fetched   : ' + totalFetched);
-  if (totalFailed > 0) {
+  if (totalFailed > 0)
     console.log('  Still incomplete   : ' + totalFailed + ' \u2014 re-run to retry');
-  } else {
+  else
     console.log('  All gaps filled.');
-  }
   console.log('  Translations ready : ' + indexCount + ' / ' + TRANSLATIONS.length);
   console.log(line + '\n');
 }
 
-main().catch(function(err) {
-  console.error('\nFatal error: ' + err.message);
-  process.exit(1);
-});
+main().catch(err => { console.error('\nFatal error: ' + err.message); process.exit(1); });

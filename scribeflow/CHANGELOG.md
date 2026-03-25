@@ -4,6 +4,36 @@ All notable changes are documented here. Version increments by tenths.
 
 ---
 
+## Version 1.6
+
+### Bug Fix
+
+**Bible fetcher — switched to parameterized API, eliminating all space encoding issues**
+- Previous versions using natural-language references (`/1%20Samuel%201?translation=kjv`) caused HTTP 403 errors for any book whose display name contains spaces. The server was rejecting `%20`-encoded spaces in the URL path regardless of headers.
+- Switched to bible-api.com's **parameterized API** which uses 3-letter uppercase book IDs with no spaces anywhere in the URL:
+  - `https://bible-api.com/data/{translation}/books/{BOOK_ID}/chapters/{n}/verses.json`
+  - Examples: `.../books/1SA/...`, `.../books/SNG/...`, `.../books/1CO/...`
+- Added complete `BOOK_IDS` map for all 66 canonical books (GEN, EXO, ..., 1SA, SNG, 1CO, ..., REV)
+- Switched from `http.get()` to `http.request()` for more explicit control over the request lifecycle
+- Fix applied to both `backend/scripts/fetch-bibles.js` and `download-bibles.js`
+
+
+## Version 1.5
+
+### Bug Fix
+
+**Bible fetcher — Cloudflare blocking bare Node.js requests**
+- bible-api.com sits behind Cloudflare which returns HTTP 403 for requests that identify as `node` (Node.js's default User-Agent). This affected all books, not just numbered ones — the earlier tests only appeared to work on some books because those were already cached on disk.
+- Added browser-like HTTP headers to every request in `httpGet()`:
+  - `User-Agent: Mozilla/5.0 (compatible; ScribeFlow-BibleFetcher/1.5)`
+  - `Accept: application/json, text/plain, */*`
+  - `Accept-Language: en-US,en;q=0.9`
+  - `Accept-Encoding: gzip, deflate, br`
+  - `Cache-Control: no-cache`
+- Added transparent gzip/deflate/brotli decompression so compressed responses are handled correctly now that `Accept-Encoding` is advertised.
+- Fix applied to both `backend/scripts/fetch-bibles.js` and `download-bibles.js`.
+
+
 ## Version 1.4
 
 ### Bug Fix
@@ -214,6 +244,8 @@ node /opt/scribeflow/backend/scripts/fetch-bibles.js  # fetch Bible data separat
 | Version | Date | Summary |
 |---------|------|---------|
 | 1.1 | 2026-03 | Hot-link fallback names + export replacement |
+| 1.6 | 2026-03 | Bible fetcher parameterized API, no spaces in URLs |
+| 1.5 | 2026-03 | Bible fetcher Cloudflare header fix |
 | 1.4 | 2026-03 | Bible fetcher switched to bible-api.com |
 | 1.3 | 2026-03 | Bible fetcher self-probing CDN slug detection (superseded) |
 | 1.2 | 2026-03 | Bible fetcher 403 fix — revert %20 encoding |

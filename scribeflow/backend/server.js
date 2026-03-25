@@ -17,7 +17,7 @@ const PROJECTS_DIR = path.join(DATA_DIR, 'projects');
 async function startupScan() {
   const line = '─'.repeat(52);
   console.log(line);
-  console.log('  ScribeFlow  v1.4');
+  console.log('  ScribeFlow  v1.6');
   console.log(line);
   console.log(`  Port           : ${PORT}`);
   console.log(`  Data directory : ${DATA_DIR}`);
@@ -147,9 +147,9 @@ app.use('/api/bible',     bibleRouter);
 app.get('/api/health', async (req, res) => {
   try {
     const files = (await fs.readdir(PROJECTS_DIR)).filter(f => f.endsWith('.json'));
-    res.json({ status: 'ok', version: '1.4.0', name: 'ScribeFlow', projects: files.length, dataDir: DATA_DIR });
+    res.json({ status: 'ok', version: '1.6.0', name: 'ScribeFlow', projects: files.length, dataDir: DATA_DIR });
   } catch {
-    res.json({ status: 'ok', version: '1.4.0', name: 'ScribeFlow', projects: 0, dataDir: DATA_DIR });
+    res.json({ status: 'ok', version: '1.6.0', name: 'ScribeFlow', projects: 0, dataDir: DATA_DIR });
   }
 });
 
