@@ -5,9 +5,20 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
 function getProjectPath(req, projectId) {
-  const base = path.join(req.app.locals.DATA_DIR, 'projects');
-  const dir  = req.userId ? path.join(base, req.userId) : base;
-  return path.join(dir, `${projectId}.json`);
+  return path.join(req.app.locals.DATA_DIR, 'projects', `${projectId}.json`);
+}
+
+function hasEditAccess(project, userId) {
+  if (!userId) return true;
+  if (project.ownerId === userId) return true;
+  const share = (project.sharedWith || []).find(s => s.userId === userId);
+  return share?.role === 'editor';
+}
+
+function hasReadAccess(project, userId) {
+  if (!userId) return true;
+  if (project.ownerId === userId) return true;
+  return (project.sharedWith || []).some(s => s.userId === userId);
 }
 
 function countWords(html) {
@@ -22,6 +33,7 @@ router.get('/:projectId/:docId', async (req, res) => {
     const filePath = getProjectPath(req, req.params.projectId);
     if (!await fs.pathExists(filePath)) return res.status(404).json({ error: 'Project not found' });
     const project = await fs.readJson(filePath);
+    if (!hasReadAccess(project, req.userId)) return res.status(403).json({ error: 'Access denied' });
     const doc = project.documents[req.params.docId];
     if (!doc) return res.status(404).json({ error: 'Document not found' });
     res.json(doc);
@@ -36,6 +48,7 @@ router.put('/:projectId/:docId', async (req, res) => {
     const filePath = getProjectPath(req, req.params.projectId);
     if (!await fs.pathExists(filePath)) return res.status(404).json({ error: 'Project not found' });
     const project = await fs.readJson(filePath);
+    if (!hasEditAccess(project, req.userId)) return res.status(403).json({ error: 'Viewers cannot edit documents' });
     
     const existing = project.documents[req.params.docId] || {};
     const updated = {
@@ -65,6 +78,7 @@ router.post('/:projectId', async (req, res) => {
     const filePath = getProjectPath(req, req.params.projectId);
     if (!await fs.pathExists(filePath)) return res.status(404).json({ error: 'Project not found' });
     const project = await fs.readJson(filePath);
+    if (!hasEditAccess(project, req.userId)) return res.status(403).json({ error: 'Access denied' });
     
     const docId = uuidv4();
     const newDoc = {

@@ -1,26 +1,44 @@
-const AUTH_ENABLED = process.env.AUTH_ENABLED === 'true';
+const { getConfig } = require('../config');
+const { getUser }   = require('../users');
 
 /**
  * Auth guard middleware.
  *
- * When AUTH_ENABLED=false (default): sets req.userId = null and proceeds.
- * Data is stored in the flat DATA_DIR/projects/ directory — fully backward
- * compatible with single-user deployments.
+ * Single-user mode (ssoEnabled=false, default):
+ *   req.userId = null, req.userRole = 'admin' — full access, no login required.
  *
- * When AUTH_ENABLED=true: requires a valid Google SSO session.
- * Sets req.userId = Google profile ID; data goes in DATA_DIR/projects/{userId}/.
- * Returns 401 JSON for unauthenticated API requests.
+ * Multi-user mode (ssoEnabled=true):
+ *   Requires an active Google SSO session.
+ *   - pending  → 403 { code: 'pending'   } — awaiting admin approval
+ *   - suspended→ 403 { code: 'suspended' } — account suspended
+ *   - active   → sets req.userId + req.userRole, proceeds
  */
-module.exports = function requireAuth(req, res, next) {
-  if (!AUTH_ENABLED) {
-    req.userId = null;
+module.exports = async function requireAuth(req, res, next) {
+  const config = await getConfig();
+
+  if (!config.ssoEnabled) {
+    req.userId   = null;
+    req.userRole = 'admin';
     return next();
   }
 
-  if (req.isAuthenticated && req.isAuthenticated()) {
-    req.userId = req.user.id;
-    return next();
+  if (!req.isAuthenticated || !req.isAuthenticated()) {
+    return res.status(401).json({ error: 'Authentication required', authEnabled: true });
   }
 
-  res.status(401).json({ error: 'Authentication required', authEnabled: true });
+  const user = await getUser(req.user.id);
+
+  if (!user) {
+    return res.status(403).json({ error: 'User not registered', code: 'not_found' });
+  }
+  if (user.status === 'pending') {
+    return res.status(403).json({ error: 'Awaiting admin approval', code: 'pending' });
+  }
+  if (user.status === 'suspended') {
+    return res.status(403).json({ error: 'Account suspended', code: 'suspended' });
+  }
+
+  req.userId   = user.id;
+  req.userRole = user.role;
+  next();
 };

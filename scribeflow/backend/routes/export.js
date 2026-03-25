@@ -6,9 +6,13 @@ const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = re
 const { htmlToText } = require('html-to-text');
 
 function getProjectPath(req, projectId) {
-  const base = path.join(req.app.locals.DATA_DIR, 'projects');
-  const dir  = req.userId ? path.join(base, req.userId) : base;
-  return path.join(dir, `${projectId}.json`);
+  return path.join(req.app.locals.DATA_DIR, 'projects', `${projectId}.json`);
+}
+
+function hasReadAccess(project, userId) {
+  if (!userId) return true;
+  if (project.ownerId === userId) return true;
+  return (project.sharedWith || []).some(s => s.userId === userId);
 }
 
 // Collect documents in binder order (only those marked includeInCompile)
@@ -152,6 +156,7 @@ router.get('/:projectId/txt', async (req, res) => {
     const filePath = getProjectPath(req, req.params.projectId);
     if (!await fs.pathExists(filePath)) return res.status(404).json({ error: 'Project not found' });
     const project = await fs.readJson(filePath);
+    if (!hasReadAccess(project, req.userId)) return res.status(403).json({ error: 'Access denied' });
     const docs     = collectDocuments(project.binder, project.documents);
     const hlPages  = getHlPages(project);
     const remove   = req.query.removeHotlinks === '1';
@@ -177,6 +182,7 @@ router.get('/:projectId/md', async (req, res) => {
     const filePath = getProjectPath(req, req.params.projectId);
     if (!await fs.pathExists(filePath)) return res.status(404).json({ error: 'Project not found' });
     const project = await fs.readJson(filePath);
+    if (!hasReadAccess(project, req.userId)) return res.status(403).json({ error: 'Access denied' });
     const docs     = collectDocuments(project.binder, project.documents);
     const hlPages  = getHlPages(project);
     const remove   = req.query.removeHotlinks === '1';
@@ -205,6 +211,7 @@ router.get('/:projectId/docx', async (req, res) => {
     const filePath = getProjectPath(req, req.params.projectId);
     if (!await fs.pathExists(filePath)) return res.status(404).json({ error: 'Project not found' });
     const project = await fs.readJson(filePath);
+    if (!hasReadAccess(project, req.userId)) return res.status(403).json({ error: 'Access denied' });
     const docs     = collectDocuments(project.binder, project.documents);
     const hlPages  = getHlPages(project);
     const remove   = req.query.removeHotlinks === '1';
@@ -240,6 +247,7 @@ router.get('/:projectId/html', async (req, res) => {
     const filePath = getProjectPath(req, req.params.projectId);
     if (!await fs.pathExists(filePath)) return res.status(404).json({ error: 'Project not found' });
     const project = await fs.readJson(filePath);
+    if (!hasReadAccess(project, req.userId)) return res.status(403).json({ error: 'Access denied' });
     const docs     = collectDocuments(project.binder, project.documents);
     const hlPages  = getHlPages(project);
     const remove   = req.query.removeHotlinks === '1';
@@ -291,6 +299,7 @@ router.get('/:projectId/json', async (req, res) => {
     const filePath = getProjectPath(req, req.params.projectId);
     if (!await fs.pathExists(filePath)) return res.status(404).json({ error: 'Project not found' });
     const project = await fs.readJson(filePath);
+    if (!hasReadAccess(project, req.userId)) return res.status(403).json({ error: 'Access denied' });
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(project.title)}-backup.json"`);
     res.json(project);

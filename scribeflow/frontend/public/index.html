@@ -767,6 +767,128 @@
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
 
+  /* ── MULTI-USER: PROJECT CARD BADGES ── */
+  .pc-badge { display:inline-flex; align-items:center; gap:4px; font-family:'JetBrains Mono',monospace; font-size:10px; padding:2px 7px; border-radius:10px; font-weight:500; }
+  .pc-badge-shared-me  { background:rgba(58,95,138,0.18); color:#7ab0e0; }
+  .pc-badge-shared-out { background:rgba(74,124,89,0.18); color:#7ec899; }
+
+  /* ── ADMIN SETTINGS PANEL ── */
+  #admin-overlay {
+    position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.55);
+    display:none; align-items:center; justify-content:center; z-index:2000;
+    opacity:0; transition:opacity 0.2s;
+  }
+  #admin-overlay.open { opacity:1; }
+  #admin-panel {
+    background:var(--bg); border-radius:10px; width:680px; max-width:96vw; max-height:85vh;
+    display:flex; flex-direction:column; box-shadow:0 8px 40px rgba(0,0,0,0.4);
+    overflow:hidden;
+  }
+  #admin-header {
+    padding:16px 20px; border-bottom:1px solid var(--border); display:flex;
+    align-items:center; justify-content:space-between; flex-shrink:0;
+  }
+  #admin-header h2 { font-family:'Lora',serif; font-size:18px; color:var(--text); margin:0; }
+  #admin-close { background:none; border:none; color:var(--text3); cursor:pointer; font-size:20px; padding:4px 8px; border-radius:4px; }
+  #admin-close:hover { color:var(--text); background:var(--bg3); }
+  #admin-body { display:flex; flex:1; overflow:hidden; }
+  #admin-nav { width:160px; background:var(--bg2); border-right:1px solid var(--border); padding:12px 8px; flex-shrink:0; display:flex; flex-direction:column; gap:2px; }
+  .an-item { padding:8px 12px; border-radius:6px; cursor:pointer; font-size:13px; color:var(--text2); transition:background 0.12s, color 0.12s; user-select:none; }
+  .an-item:hover { background:var(--bg3); color:var(--text); }
+  .an-item.active { background:var(--sidebar-active); color:#fff; }
+  .an-item .an-badge { display:inline-block; margin-left:6px; background:var(--accent); color:#fff; font-size:10px; border-radius:8px; padding:0 5px; font-family:'JetBrains Mono',monospace; }
+  #admin-content { flex:1; overflow-y:auto; padding:24px; }
+  .admin-section { display:none; }
+  .admin-section.active { display:block; }
+  .admin-section h3 { font-family:'Lora',serif; font-size:17px; color:var(--text); margin:0 0 4px; }
+  .admin-section > p { color:var(--text3); font-size:13px; margin-bottom:20px; line-height:1.6; }
+
+  /* Multi-user section */
+  .mu-status-row { display:flex; align-items:center; gap:10px; margin-bottom:20px; }
+  .mu-badge-on  { background:rgba(74,124,89,0.2); color:#5ca87a; font-family:'JetBrains Mono',monospace; font-size:12px; padding:4px 12px; border-radius:12px; }
+  .mu-badge-off { background:var(--bg3); color:var(--text3); font-family:'JetBrains Mono',monospace; font-size:12px; padding:4px 12px; border-radius:12px; }
+  .mu-cred-ok   { color:#5ca87a; font-size:13px; font-family:'JetBrains Mono',monospace; margin-bottom:16px; }
+  .mu-cred-warn { color:var(--yellow); font-size:13px; font-family:'JetBrains Mono',monospace; margin-bottom:16px; background:rgba(201,150,42,0.1); padding:10px 14px; border-radius:6px; line-height:1.6; }
+  .mu-cred-warn code { display:block; margin-top:8px; padding:8px; background:var(--bg3); border-radius:4px; font-size:12px; color:var(--text2); }
+  .mu-toggle-row { display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-top:1px solid var(--border); }
+  .mu-toggle-row label { font-size:14px; color:var(--text2); }
+  .toggle-switch { position:relative; display:inline-block; width:42px; height:24px; }
+  .toggle-switch input { opacity:0; width:0; height:0; }
+  .toggle-slider { position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:var(--bg3); transition:.2s; border-radius:24px; }
+  .toggle-slider:before { position:absolute; content:""; height:18px; width:18px; left:3px; bottom:3px; background:#fff; transition:.2s; border-radius:50%; }
+  input:checked + .toggle-slider { background:var(--accent); }
+  input:checked + .toggle-slider:before { transform:translateX(18px); }
+  .danger-zone { border:1px solid rgba(181,84,26,0.3); border-radius:8px; padding:16px; margin-top:24px; }
+  .danger-zone h4 { font-size:13px; color:var(--red); margin:0 0 8px; font-family:'JetBrains Mono',monospace; text-transform:uppercase; letter-spacing:1px; }
+  .danger-zone p { font-size:13px; color:var(--text3); margin:0 0 12px; }
+  .settings-btn-primary { background:var(--accent); color:#fff; border:none; padding:8px 18px; border-radius:6px; cursor:pointer; font-size:13px; font-family:'JetBrains Mono',monospace; transition:background 0.15s; }
+  .settings-btn-primary:hover { background:var(--accent2); }
+  .settings-btn-primary:disabled { opacity:0.4; cursor:not-allowed; }
+  .settings-btn-danger  { background:transparent; color:var(--red); border:1px solid var(--red); padding:7px 16px; border-radius:6px; cursor:pointer; font-size:13px; font-family:'JetBrains Mono',monospace; transition:all 0.15s; }
+  .settings-btn-danger:hover { background:var(--red); color:#fff; }
+
+  /* User management table */
+  .user-row { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); }
+  .user-row:last-child { border-bottom:none; }
+  .user-row-avatar { width:32px; height:32px; border-radius:50%; object-fit:cover; background:var(--bg3); flex-shrink:0; }
+  .user-row-info { flex:1; min-width:0; }
+  .user-row-name  { font-size:14px; color:var(--text); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .user-row-email { font-size:12px; color:var(--text3); font-family:'JetBrains Mono',monospace; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .user-row-role  { font-size:11px; font-family:'JetBrains Mono',monospace; padding:2px 8px; border-radius:8px; flex-shrink:0; }
+  .user-row-role.admin { background:rgba(181,84,26,0.15); color:var(--accent); }
+  .user-row-role.user  { background:var(--bg3); color:var(--text3); }
+  .user-row-actions { display:flex; gap:6px; flex-shrink:0; }
+  .um-btn { font-size:12px; font-family:'JetBrains Mono',monospace; padding:4px 10px; border-radius:4px; cursor:pointer; border:1px solid; transition:all 0.12s; }
+  .btn-approve  { color:#5ca87a; border-color:#5ca87a; background:transparent; }
+  .btn-approve:hover { background:#5ca87a; color:#fff; }
+  .btn-suspend  { color:var(--yellow); border-color:var(--yellow); background:transparent; }
+  .btn-suspend:hover { background:var(--yellow); color:#fff; }
+  .btn-delete   { color:var(--red); border-color:var(--red); background:transparent; }
+  .btn-delete:hover  { background:var(--red); color:#fff; }
+  .um-section-head { font-family:'JetBrains Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--text3); margin:0 0 8px; }
+  .um-section { margin-bottom:24px; }
+  .no-users { color:var(--text3); font-size:13px; font-style:italic; }
+  #user-pending-dot { display:none; width:8px; height:8px; background:var(--accent); border-radius:50%; margin-left:4px; }
+
+  /* ── PROJECT SHARE MODAL ── */
+  #share-overlay {
+    position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.55);
+    display:none; align-items:center; justify-content:center; z-index:2100;
+    opacity:0; transition:opacity 0.2s;
+  }
+  #share-overlay.open { opacity:1; }
+  #share-panel {
+    background:var(--bg); border-radius:10px; width:500px; max-width:94vw; max-height:80vh;
+    display:flex; flex-direction:column; box-shadow:0 8px 40px rgba(0,0,0,0.4); overflow:hidden;
+  }
+  #share-header { padding:14px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+  #share-header h3 { font-family:'Lora',serif; font-size:16px; margin:0; color:var(--text); }
+  #share-close { background:none; border:none; color:var(--text3); cursor:pointer; font-size:18px; padding:4px 8px; border-radius:4px; }
+  #share-close:hover { color:var(--text); background:var(--bg3); }
+  #share-body { padding:18px; overflow-y:auto; flex:1; }
+  .share-owner-row { display:flex; align-items:center; gap:8px; margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid var(--border); }
+  .share-owner-label { font-size:12px; font-family:'JetBrains Mono',monospace; color:var(--text3); text-transform:uppercase; letter-spacing:1px; }
+  .share-owner-name  { font-size:14px; color:var(--text); flex:1; }
+  #share-users-list { margin-bottom:16px; min-height:40px; }
+  .share-user-row { display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid var(--border); }
+  .share-user-row:last-child { border-bottom:none; }
+  .share-role-sel { font-size:12px; font-family:'JetBrains Mono',monospace; background:var(--bg2); border:1px solid var(--border); color:var(--text); padding:3px 6px; border-radius:4px; }
+  #share-add-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; padding-top:12px; border-top:1px solid var(--border); }
+  #share-user-select, #share-role-select { flex:1; min-width:0; font-size:13px; font-family:'JetBrains Mono',monospace; background:var(--bg2); border:1px solid var(--border2); color:var(--text); padding:6px 8px; border-radius:6px; }
+  #share-add-btn { background:var(--accent); color:#fff; border:none; padding:7px 14px; border-radius:6px; cursor:pointer; font-size:13px; font-family:'JetBrains Mono',monospace; white-space:nowrap; }
+  #share-add-btn:hover { background:var(--accent2); }
+  #share-transfer-btn { font-size:12px; color:var(--text3); background:none; border:1px solid var(--border); padding:4px 10px; border-radius:4px; cursor:pointer; font-family:'JetBrains Mono',monospace; }
+  #share-transfer-btn:hover { color:var(--text); border-color:var(--text2); }
+
+  /* ── COLLABORATION PRESENCE BAR ── */
+  #collab-bar {
+    display:none; align-items:center; gap:8px; padding:4px 14px;
+    background:rgba(58,95,138,0.12); border-bottom:1px solid rgba(58,95,138,0.25);
+    font-size:12px; color:#7ab0e0; font-family:'JetBrains Mono',monospace; flex-shrink:0;
+  }
+  #collab-avatars { display:flex; gap:-4px; }
+  .presence-avatar { width:20px; height:20px; border-radius:50%; object-fit:cover; border:2px solid var(--bg); margin-right:-4px; background:var(--bg3); }
+
   /* ── AUTH LOGIN OVERLAY ── */
   #auth-overlay {
     position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -844,6 +966,118 @@
   </div>
 </div>
 
+<!-- AWAITING APPROVAL SCREEN -->
+<div id="pending-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--sidebar-bg);z-index:9998;align-items:center;justify-content:center;">
+  <div class="auth-card">
+    <div class="auth-logo">ScribeFlow</div>
+    <p style="color:var(--text2);font-size:15px;font-weight:600;">Awaiting Approval</p>
+    <div class="auth-divider"></div>
+    <p style="color:var(--text3);font-size:13px;text-align:center;max-width:300px;line-height:1.7;">Your Google account has been registered. An administrator must approve your access before you can continue.</p>
+    <p style="color:var(--text3);font-size:12px;">You can close this tab and try again after approval.</p>
+    <a href="/auth/logout" style="color:var(--accent);font-size:13px;text-decoration:none;margin-top:4px;">← Sign out</a>
+  </div>
+</div>
+
+<!-- APP SETTINGS PANEL -->
+<div id="admin-overlay">
+  <div id="admin-panel">
+    <div id="admin-header">
+      <h2>App Settings</h2>
+      <button id="admin-close">✕</button>
+    </div>
+    <div id="admin-body">
+      <div id="admin-nav">
+        <div class="an-item active" data-asection="multiuser">👥 Multi-User</div>
+        <div class="an-item" id="an-users" data-asection="users" style="display:none">🛡 Users <span id="user-pending-dot"></span></div>
+      </div>
+      <div id="admin-content">
+
+        <!-- MULTI-USER SECTION -->
+        <div class="admin-section active" id="asection-multiuser">
+          <h3>Multi-User Access</h3>
+          <p>Enable Google SSO to let multiple users log in with their own project libraries. The first account to sign in becomes the permanent Administrator.</p>
+
+          <div id="mu-cred-status"></div>
+
+          <!-- SSO disabled view -->
+          <div id="mu-disabled-view">
+            <div class="mu-status-row"><span class="mu-badge-off">● Single-user mode</span></div>
+            <p style="font-size:13px;color:var(--text3);margin-bottom:16px;">Before enabling, set these environment variables in your Docker deployment, then rebuild:</p>
+            <code style="display:block;background:var(--bg3);padding:10px 14px;border-radius:6px;font-size:12px;color:var(--text2);line-height:1.9;margin-bottom:20px;">GOOGLE_CLIENT_ID=&lt;your-client-id&gt;.apps.googleusercontent.com<br>GOOGLE_CLIENT_SECRET=&lt;your-secret&gt;<br>GOOGLE_CALLBACK_URL=https://&lt;your-domain&gt;/auth/google/callback<br>SESSION_SECRET=&lt;long-random-string&gt;</code>
+            <button id="mu-enable-btn" class="settings-btn-primary" disabled>Enable Multi-User SSO</button>
+            <p style="font-size:12px;color:var(--text3);margin-top:10px;">You'll be redirected to Google sign-in to complete setup. All existing projects will be assigned to your account.</p>
+          </div>
+
+          <!-- SSO enabled view -->
+          <div id="mu-enabled-view" style="display:none">
+            <div class="mu-status-row"><span class="mu-badge-on">● Multi-user SSO active</span></div>
+            <div class="mu-toggle-row">
+              <label>Require admin approval for new users</label>
+              <label class="toggle-switch">
+                <input type="checkbox" id="mu-require-approval">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div id="mu-admin-only" style="display:none">
+              <div class="danger-zone">
+                <h4>Danger Zone</h4>
+                <p>Disabling SSO returns the app to single-user mode. All data and user accounts are preserved.</p>
+                <button id="mu-disable-btn" class="settings-btn-danger">Disable SSO &amp; Return to Single-User</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- USER MANAGEMENT SECTION -->
+        <div class="admin-section" id="asection-users">
+          <h3>User Management</h3>
+          <p>Manage who has access to ScribeFlow.</p>
+          <div class="um-section">
+            <div class="um-section-head">Pending Approval</div>
+            <div id="users-pending-list"><span class="no-users">No pending users</span></div>
+          </div>
+          <div class="um-section">
+            <div class="um-section-head">Active Users</div>
+            <div id="users-active-list"><span class="no-users">Loading…</span></div>
+          </div>
+          <div class="um-section">
+            <div class="um-section-head">Suspended</div>
+            <div id="users-suspended-list"><span class="no-users">None</span></div>
+          </div>
+        </div>
+
+      </div><!-- #admin-content -->
+    </div><!-- #admin-body -->
+  </div><!-- #admin-panel -->
+</div><!-- #admin-overlay -->
+
+<!-- PROJECT SHARE MODAL -->
+<div id="share-overlay">
+  <div id="share-panel">
+    <div id="share-header">
+      <h3>Share Project</h3>
+      <button id="share-close">✕</button>
+    </div>
+    <div id="share-body">
+      <div class="share-owner-row">
+        <span class="share-owner-label">Owner</span>
+        <span id="share-owner-name" class="share-owner-name"></span>
+        <button id="share-transfer-btn" style="display:none">Transfer Ownership</button>
+      </div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:8px;">Shared With</div>
+      <div id="share-users-list"></div>
+      <div id="share-add-row">
+        <select id="share-user-select"><option value="">— Add a user —</option></select>
+        <select id="share-role-select">
+          <option value="editor">Editor</option>
+          <option value="viewer">Viewer</option>
+        </select>
+        <button id="share-add-btn">Add</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- AUTH LOGIN SCREEN -->
 <div id="auth-overlay">
   <div class="auth-card">
@@ -887,11 +1121,18 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
     Export
   </button>
+  <button class="tb-btn" id="btn-share" style="display:none" title="Share Project">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+    Share
+  </button>
   <button class="tb-btn" id="btn-settings" title="Project Settings">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
     Settings
   </button>
   <div class="tb-right">
+    <button class="tb-btn" id="btn-admin-panel" style="display:none" title="App Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+    </button>
     <span id="save-status">—</span>
     <div class="tb-sep"></div>
     <button class="tb-btn" id="btn-distraction-free" title="Focus Mode">
@@ -924,6 +1165,12 @@
 
   <!-- MAIN CONTENT -->
   <div id="main">
+    <!-- COLLABORATION PRESENCE BAR -->
+    <div id="collab-bar">
+      <div id="collab-avatars"></div>
+      <span id="collab-text"></span>
+    </div>
+
     <!-- FORMAT BAR -->
     <div id="format-bar">
       <select class="fmt-select" id="fmt-block">
@@ -1415,18 +1662,24 @@ async function loadProjectList(retryCount = 0) {
       list.innerHTML = '<div style="color:var(--sidebar-muted);font-family:JetBrains Mono,monospace;font-size:13px;padding:16px 0;">No projects yet. Create one to get started.</div>';
       return;
     }
-    list.innerHTML = projects.map(p => `
-      <div class="project-card" data-id="${p.id}">
+    list.innerHTML = projects.map(p => {
+      const tl = projectTypeLabel(p.docStyle, p.researchType);
+      const isSharedWithMe = p.accessRole && p.accessRole !== 'owner';
+      const isSharedOut    = p.accessRole === 'owner' && (p.sharedWith||[]).length > 0;
+      const badge = isSharedWithMe
+        ? '<span class="pc-badge pc-badge-shared-me">shared with me</span>'
+        : (isSharedOut ? '<span class="pc-badge pc-badge-shared-out">shared</span>' : '');
+      return `<div class="project-card" data-id="${p.id}" data-access="${p.accessRole||'owner'}">
         <div class="pc-icon">📖</div>
         <div class="pc-info">
-          <div class="pc-title">${escHtml(p.title)}${projectTypeLabel(p.docStyle, p.researchType) ? `<span class="pc-type">${escHtml(projectTypeLabel(p.docStyle, p.researchType))}</span>` : ''}</div>
+          <div class="pc-title">${escHtml(p.title)}${tl ? `<span class="pc-type">${escHtml(tl)}</span>` : ''}${badge}</div>
           <div class="pc-meta">Updated ${formatDate(p.updatedAt)}</div>
         </div>
         <span class="pc-wc">${p.wordCount.toLocaleString()} words</span>
         <button class="pc-settings" data-id="${p.id}" title="Project Settings" style="background:none;border:none;color:var(--sidebar-muted);cursor:pointer;padding:4px;border-radius:4px;opacity:0;transition:opacity 0.15s,color 0.15s;font-size:14px;">⚙</button>
-        <button class="pc-delete" data-id="${p.id}" title="Delete project">🗑</button>
-      </div>
-    `).join('');
+        ${(p.accessRole||'owner')==='owner' ? `<button class="pc-delete" data-id="${p.id}" title="Delete project">🗑</button>` : ''}
+      </div>`;
+    }).join('');
     list.querySelectorAll('.project-card').forEach(card => {
       card.addEventListener('click', (e) => {
         if (e.target.closest('.pc-delete') || e.target.closest('.pc-settings')) return;
@@ -3689,48 +3942,9 @@ function initScriptureResize() {
 initSettingsListeners();
 document.getElementById('tb-version').textContent = 'v' + APP_VERSION;
 
-async function initAuth() {
-  try {
-    const res  = await fetch('/api/me');
-    const data = await res.json();
-
-    if (!data.authEnabled) {
-      // Single-user mode — proceed directly
-      showHome();
-      return;
-    }
-
-    if (!data.user) {
-      // Multi-user mode, not yet authenticated — show login screen
-      const overlay = document.getElementById('auth-overlay');
-      overlay.style.display = 'flex';
-      // Show error banner if redirected back with ?auth=failed
-      if (location.search.includes('auth=failed')) {
-        const errEl = document.getElementById('auth-error-msg');
-        errEl.textContent = 'Sign-in failed. Please try again.';
-        errEl.style.display = 'block';
-      }
-      return;
-    }
-
-    // Multi-user mode, authenticated — show user info in toolbar
-    const ui = document.getElementById('user-info');
-    ui.style.display = 'flex';
-    if (data.user.avatar) {
-      const img = document.getElementById('user-avatar');
-      img.src = data.user.avatar;
-      img.onerror = () => { img.style.display = 'none'; };
-    }
-    document.getElementById('user-name').textContent = data.user.name || data.user.email || '';
-    showHome();
-
-  } catch (err) {
-    console.error('Auth check failed:', err);
-    showHome(); // fail open — don't lock users out on network error
-  }
-}
-
-initAuth();
+// initAuth() stub — replaced by _initAuthMultiUser() in the second script block below.
+// Defined here so any early references don't throw; the real call happens after DOM loads.
+function initAuth() { /* handled by _initAuthMultiUser() */ }
 </script>
 <!-- EXPORT HOT-LINK CHOICE MODAL -->
 <div id="export-hl-overlay">
@@ -3753,5 +3967,471 @@ initAuth();
   </div>
 </div>
 
+<script src="/socket.io/socket.io.js"></script>
+<script>
+// ── MULTI-USER STATE ──────────────────────────────────────────────────────
+let currentUser  = null;   // { id, name, email, avatar, role, status }
+let ssoEnabled   = false;
+
+// ── ADMIN PANEL ───────────────────────────────────────────────────────────
+let adminPanelOpen = false;
+
+function openAdminPanel(tab) {
+  loadAdminStatus();
+  switchAdminTab(tab || 'multiuser');
+  const ov = document.getElementById('admin-overlay');
+  ov.style.display = 'flex';
+  requestAnimationFrame(() => ov.classList.add('open'));
+  adminPanelOpen = true;
+}
+
+function closeAdminPanel() {
+  const ov = document.getElementById('admin-overlay');
+  ov.classList.remove('open');
+  setTimeout(() => { if (!adminPanelOpen) ov.style.display = 'none'; }, 220);
+  adminPanelOpen = false;
+}
+
+function switchAdminTab(name) {
+  document.querySelectorAll('.an-item').forEach(i => i.classList.remove('active'));
+  document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+  const tab = document.querySelector(`.an-item[data-asection="${name}"]`);
+  const sec = document.getElementById(`asection-${name}`);
+  if (tab) tab.classList.add('active');
+  if (sec) sec.classList.add('active');
+  if (name === 'users') loadUserManagement();
+}
+
+async function loadAdminStatus() {
+  try {
+    const res  = await fetch('/api/admin/status');
+    const data = await res.json();
+    renderAdminMultiUserTab(data);
+  } catch (err) { console.error('Admin status failed:', err); }
+}
+
+function renderAdminMultiUserTab(status) {
+  // Credentials indicator
+  const credEl = document.getElementById('mu-cred-status');
+  if (status.credentialsConfigured) {
+    credEl.innerHTML = '<p class="mu-cred-ok">✓ Google OAuth credentials are configured.</p>';
+  } else {
+    credEl.innerHTML = '<p class="mu-cred-warn">⚠ Google OAuth credentials are not set. Add them to your docker-compose.yml and rebuild:<code>GOOGLE_CLIENT_ID=...\nGOOGLE_CLIENT_SECRET=...\nGOOGLE_CALLBACK_URL=https://your-domain/auth/google/callback\nSESSION_SECRET=...</code></p>';
+  }
+
+  const disabledView = document.getElementById('mu-disabled-view');
+  const enabledView  = document.getElementById('mu-enabled-view');
+  const enableBtn    = document.getElementById('mu-enable-btn');
+
+  if (status.ssoEnabled) {
+    disabledView.style.display = 'none';
+    enabledView.style.display  = 'block';
+    const approvalToggle = document.getElementById('mu-require-approval');
+    approvalToggle.checked = status.requireApproval;
+    const adminOnly = document.getElementById('mu-admin-only');
+    if (adminOnly) adminOnly.style.display = status.isAdmin ? 'block' : 'none';
+    const usersTab = document.getElementById('an-users');
+    if (usersTab) usersTab.style.display = status.isAdmin ? '' : 'none';
+  } else {
+    disabledView.style.display = 'block';
+    enabledView.style.display  = 'none';
+    enableBtn.disabled = !status.credentialsConfigured;
+  }
+}
+
+async function enableSSO() {
+  const btn = document.getElementById('mu-enable-btn');
+  btn.disabled = true;
+  btn.textContent = 'Enabling…';
+  try {
+    const res  = await fetch('/api/admin/enable-sso', { method: 'POST' });
+    const data = await res.json();
+    if (data.error) {
+      alert(data.error);
+      btn.disabled = false;
+      btn.textContent = 'Enable Multi-User SSO';
+      return;
+    }
+    if (data.redirectTo) window.location.href = data.redirectTo;
+  } catch (err) {
+    alert('Failed: ' + err.message);
+    btn.disabled = false;
+    btn.textContent = 'Enable Multi-User SSO';
+  }
+}
+
+async function disableSSO() {
+  if (!confirm('Disable SSO? The app will return to single-user mode. All data is preserved.')) return;
+  const res = await fetch('/api/admin/disable-sso', { method: 'POST' });
+  if ((await res.json()).success) window.location.reload();
+  else alert('Failed to disable SSO.');
+}
+
+async function updateRequireApproval(checked) {
+  await fetch('/api/admin/config', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ requireApproval: checked })
+  });
+}
+
+// ── USER MANAGEMENT ───────────────────────────────────────────────────────
+async function loadUserManagement() {
+  try {
+    const res   = await fetch('/api/admin/users');
+    const users = await res.json();
+    renderUserLists(users);
+    // Update pending dot
+    const pending = users.filter(u => u.status === 'pending').length;
+    const dot = document.getElementById('user-pending-dot');
+    if (dot) { dot.textContent = pending || ''; dot.style.display = pending ? 'inline' : 'none'; }
+  } catch (err) { console.error('User management failed:', err); }
+}
+
+function renderUserLists(users) {
+  renderUserGroup('users-pending-list',   users.filter(u => u.status === 'pending'),
+    [{ label:'Approve', cls:'btn-approve', action:'approve' }, { label:'Deny', cls:'btn-delete', action:'delete' }]);
+  renderUserGroup('users-active-list',    users.filter(u => u.status === 'active'),
+    [{ label:'Suspend', cls:'btn-suspend', action:'suspend', skipAdmin:true }]);
+  renderUserGroup('users-suspended-list', users.filter(u => u.status === 'suspended'),
+    [{ label:'Reactivate', cls:'btn-approve', action:'reactivate' }, { label:'Delete', cls:'btn-delete', action:'delete' }]);
+}
+
+function renderUserGroup(elId, users, actions) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (!users.length) { el.innerHTML = '<span class="no-users">None</span>'; return; }
+  el.innerHTML = users.map(u => `
+    <div class="user-row">
+      <img class="user-row-avatar" src="${u.avatar || ''}" onerror="this.style.display='none'" alt="">
+      <div class="user-row-info">
+        <div class="user-row-name">${_esc(u.name)}</div>
+        <div class="user-row-email">${_esc(u.email)}</div>
+      </div>
+      <span class="user-row-role ${u.role}">${u.role}</span>
+      <div class="user-row-actions">
+        ${actions.filter(a => !a.skipAdmin || u.role !== 'admin').map(a =>
+          `<button class="um-btn ${a.cls}" onclick="_userAction('${a.action}','${u.id}')">${a.label}</button>`
+        ).join('')}
+      </div>
+    </div>`).join('');
+}
+
+async function _userAction(action, userId) {
+  const map = { approve:'POST', suspend:'POST', reactivate:'POST', delete:'DELETE' };
+  if (action === 'delete' && !confirm('Permanently delete this user?')) return;
+  const url    = `/api/admin/users/${userId}` + (action === 'delete' ? '' : `/${action}`);
+  const method = map[action] || 'POST';
+  const res    = await fetch(url, { method });
+  if (res.ok) loadUserManagement();
+  else { const e = await res.json(); alert(e.error || 'Action failed'); }
+}
+
+function _esc(str) {
+  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── PROJECT SHARING ───────────────────────────────────────────────────────
+let _allUsers = [];
+
+async function openShareModal() {
+  if (!currentProject) return;
+  const ov = document.getElementById('share-overlay');
+  ov.style.display = 'flex';
+  requestAnimationFrame(() => ov.classList.add('open'));
+  await refreshShareModal();
+}
+
+async function refreshShareModal() {
+  try {
+    const [shareRes, usersRes] = await Promise.all([
+      fetch(`/api/projects/${currentProject.id}/share`),
+      fetch('/api/admin/users')
+    ]);
+    const shareData = await shareRes.json();
+    _allUsers = usersRes.ok ? await usersRes.json() : [];
+    renderShareModal(shareData);
+  } catch (err) { console.error('Share modal error:', err); }
+}
+
+function renderShareModal(shareData) {
+  // Owner row
+  document.getElementById('share-owner-name').textContent =
+    shareData.ownerName || shareData.ownerId || 'You';
+  const xBtn = document.getElementById('share-transfer-btn');
+  xBtn.style.display = (!currentUser || shareData.ownerId === currentUser.id) ? '' : 'none';
+
+  // Shared-with list
+  const listEl = document.getElementById('share-users-list');
+  const sw = shareData.sharedWith || [];
+  if (!sw.length) {
+    listEl.innerHTML = '<span class="no-users" style="padding:8px 0;display:block">Not shared with anyone yet</span>';
+  } else {
+    listEl.innerHTML = sw.map(e => `
+      <div class="share-user-row">
+        <img class="user-row-avatar" src="${_esc(e.userAvatar||'')}" onerror="this.style.display='none'" alt="">
+        <div class="user-row-info">
+          <div class="user-row-name">${_esc(e.userName||e.userId)}</div>
+          <div class="user-row-email">${_esc(e.userEmail||'')}</div>
+        </div>
+        <select class="share-role-sel" onchange="_shareUpdateRole('${e.userId}',this.value)">
+          <option value="editor" ${e.role==='editor'?'selected':''}>Editor</option>
+          <option value="viewer" ${e.role==='viewer'?'selected':''}>Viewer</option>
+        </select>
+        <button class="um-btn btn-delete" onclick="_shareRemove('${e.userId}')">Remove</button>
+      </div>`).join('');
+  }
+
+  // Add-user select
+  const sel = document.getElementById('share-user-select');
+  const sharedIds = new Set(sw.map(s => s.userId));
+  const available = _allUsers.filter(u =>
+    u.id !== shareData.ownerId && !sharedIds.has(u.id) && u.status === 'active');
+  sel.innerHTML = '<option value="">— Select a user —</option>' +
+    available.map(u => `<option value="${u.id}">${_esc(u.name)} (${_esc(u.email)})</option>`).join('');
+}
+
+async function _shareAdd() {
+  const userId = document.getElementById('share-user-select').value;
+  const role   = document.getElementById('share-role-select').value;
+  if (!userId) return;
+  await fetch(`/api/projects/${currentProject.id}/share`, {
+    method: 'PUT', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ userId, role })
+  });
+  await refreshShareModal();
+  await loadProjectList(); // refresh badges
+}
+
+async function _shareRemove(userId) {
+  if (!confirm('Remove this user\'s access?')) return;
+  await fetch(`/api/projects/${currentProject.id}/share/${userId}`, { method: 'DELETE' });
+  await refreshShareModal();
+  await loadProjectList();
+}
+
+async function _shareUpdateRole(userId, role) {
+  await fetch(`/api/projects/${currentProject.id}/share`, {
+    method: 'PUT', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ userId, role })
+  });
+}
+
+async function _shareTransfer() {
+  const active = _allUsers.filter(u => u.status === 'active' && u.id !== (currentUser?.id));
+  if (!active.length) { alert('No other active users to transfer to.'); return; }
+  const emails = active.map(u => `${u.name} — ${u.email}`).join('\n');
+  const chosen = prompt(`Enter exact email address of new owner:\n\n${emails}`);
+  if (!chosen) return;
+  const target = active.find(u => u.email === chosen.trim());
+  if (!target) { alert('User not found. Please enter an exact email address.'); return; }
+  if (!confirm(`Transfer ownership of "${currentProject.title}" to ${target.name}?`)) return;
+  const res = await fetch(`/api/projects/${currentProject.id}/share/transfer`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ toUserId: target.id })
+  });
+  if (res.ok) { await refreshShareModal(); await loadProjectList(); alert('Ownership transferred.'); }
+  else { const e = await res.json(); alert('Failed: ' + (e.error || 'Unknown error')); }
+}
+
+// ── SOCKET.IO REAL-TIME COLLABORATION ─────────────────────────────────────
+let _socket       = null;
+let _currentRoom  = null;   // 'projectId:docId'
+let _broadcastTimer = null;
+
+function initSocket() {
+  if (_socket) return;
+  _socket = io({ transports: ['websocket', 'polling'] });
+  _socket.on('connect',    () => {});
+  _socket.on('disconnect', () => renderPresence({}));
+
+  _socket.on('doc-updated', ({ projectId, docId, content, userId }) => {
+    if (!currentProject || projectId !== currentProject.id) return;
+    if (docId !== currentDocId) return;
+    if (userId === currentUser?.id) return;   // our own echo
+    // Apply remote content only if user isn't actively typing
+    if (document.activeElement?.id !== 'editor') {
+      const ed = document.getElementById('editor');
+      if (ed) { ed.innerHTML = content; updateStats(); }
+    }
+  });
+
+  _socket.on('presence-update', ({ users }) => renderPresence(users));
+}
+
+function _joinDocRoom(projectId, docId) {
+  if (!_socket) return;
+  _leaveDocRoom();
+  _currentRoom = `${projectId}:${docId}`;
+  _socket.emit('join-doc', { projectId, docId });
+}
+
+function _leaveDocRoom() {
+  if (!_socket || !_currentRoom) return;
+  const [projectId, docId] = _currentRoom.split(':');
+  _socket.emit('leave-doc', { projectId, docId });
+  _currentRoom = null;
+  renderPresence({});
+}
+
+function renderPresence(users) {
+  const bar     = document.getElementById('collab-bar');
+  const avatars = document.getElementById('collab-avatars');
+  const text    = document.getElementById('collab-text');
+  const others  = Object.values(users).filter(u => u.userId !== currentUser?.id);
+  if (!others.length) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  avatars.innerHTML = others.slice(0,5).map(u =>
+    `<img class="presence-avatar" src="${_esc(u.avatar||'')}" title="${_esc(u.name)}" onerror="this.style.display='none'">`
+  ).join('');
+  text.textContent = others.length === 1
+    ? `${others[0].name} is also editing`
+    : `${others.length} others are here`;
+}
+
+// Hook selectDoc to join/leave rooms
+const _origSelectDoc = selectDoc;
+selectDoc = async function(docId) {
+  if (_socket && currentProject) _leaveDocRoom();
+  await _origSelectDoc(docId);
+  if (_socket && currentProject && currentDocId) _joinDocRoom(currentProject.id, currentDocId);
+};
+
+// Hook showHome to leave room
+const _origShowHome = showHome;
+showHome = async function() {
+  if (_socket) _leaveDocRoom();
+  await _origShowHome();
+  // Show/hide share button
+  document.getElementById('btn-share').style.display = 'none';
+};
+
+// Hook openProject to show Share button
+const _origOpenProject = openProject;
+openProject = async function(id) {
+  await _origOpenProject(id);
+  const shareBtn = document.getElementById('btn-share');
+  if (ssoEnabled && shareBtn) shareBtn.style.display = '';
+};
+
+// Broadcast content changes on debounce (faster than save timer)
+document.getElementById('editor').addEventListener('input', () => {
+  if (!_socket || !currentProject || !currentDocId) return;
+  clearTimeout(_broadcastTimer);
+  _broadcastTimer = setTimeout(() => {
+    _socket.emit('doc-change', {
+      projectId: currentProject.id,
+      docId: currentDocId,
+      content: getEditorContent()
+    });
+  }, 400);
+});
+
+// ── UPDATED initAuth ──────────────────────────────────────────────────────
+// (replaces the one in the main script block)
+async function _initAuthMultiUser() {
+  try {
+    const res  = await fetch('/api/me');
+    const data = await res.json();
+
+    if (!data.authEnabled) {
+      // Single-user mode: always show admin panel button (for SSO setup)
+      ssoEnabled = false;
+      document.getElementById('btn-admin-panel').style.display = '';
+      showHome();
+      return;
+    }
+
+    ssoEnabled = true;
+
+    if (!data.user) {
+      document.getElementById('auth-overlay').style.display = 'flex';
+      if (location.search.includes('auth=failed')) {
+        const el = document.getElementById('auth-error-msg');
+        el.textContent = 'Sign-in failed or access denied. Please try again.';
+        el.style.display = 'block';
+      }
+      return;
+    }
+
+    if (data.user.status === 'pending') {
+      document.getElementById('pending-overlay').style.display = 'flex';
+      return;
+    }
+
+    if (data.user.status === 'suspended') {
+      document.getElementById('auth-overlay').style.display = 'flex';
+      const el = document.getElementById('auth-error-msg');
+      el.textContent = 'Your account has been suspended. Contact the administrator.';
+      el.style.display = 'block';
+      return;
+    }
+
+    // Active user
+    currentUser = data.user;
+
+    // Toolbar user info
+    const ui = document.getElementById('user-info');
+    ui.style.display = 'flex';
+    if (data.user.avatar) {
+      const img = document.getElementById('user-avatar');
+      img.src = data.user.avatar;
+      img.onerror = () => { img.style.display = 'none'; };
+    }
+    document.getElementById('user-name').textContent = data.user.name || data.user.email || '';
+
+    // Admin panel button: always visible in multi-user mode (contents adapt per role)
+    document.getElementById('btn-admin-panel').style.display = '';
+
+    // Init real-time
+    initSocket();
+
+    showHome();
+
+  } catch (err) {
+    console.error('Auth check failed:', err);
+    showHome();
+  }
+}
+
+// ── WIRE UP ALL NEW BUTTONS ───────────────────────────────────────────────
+document.getElementById('btn-admin-panel').addEventListener('click', () => openAdminPanel());
+document.getElementById('admin-close').addEventListener('click', closeAdminPanel);
+document.getElementById('admin-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('admin-overlay')) closeAdminPanel();
+});
+
+// Admin nav tabs
+document.getElementById('admin-nav').addEventListener('click', e => {
+  const item = e.target.closest('.an-item');
+  if (item && item.dataset.asection) switchAdminTab(item.dataset.asection);
+});
+
+document.getElementById('mu-enable-btn').addEventListener('click', enableSSO);
+document.getElementById('mu-disable-btn').addEventListener('click', disableSSO);
+document.getElementById('mu-require-approval').addEventListener('change', e => updateRequireApproval(e.target.checked));
+
+// Share modal
+document.getElementById('btn-share').addEventListener('click', openShareModal);
+document.getElementById('share-close').addEventListener('click', () => {
+  const ov = document.getElementById('share-overlay');
+  ov.classList.remove('open');
+  setTimeout(() => { ov.style.display = 'none'; }, 220);
+});
+document.getElementById('share-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('share-overlay')) {
+    const ov = document.getElementById('share-overlay');
+    ov.classList.remove('open');
+    setTimeout(() => { ov.style.display = 'none'; }, 220);
+  }
+});
+document.getElementById('share-add-btn').addEventListener('click', _shareAdd);
+document.getElementById('share-transfer-btn').addEventListener('click', _shareTransfer);
+
+// ── RE-RUN INIT ────────────────────────────────────────────────────────────
+// This replaces the initAuth() call in the main script block.
+// We cancel the previous call by overwriting initAuth and re-running.
+_initAuthMultiUser();
+</script>
 </body>
 </html>
