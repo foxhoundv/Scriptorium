@@ -705,6 +705,17 @@
   }
   .scripture-loading { color: var(--text3); font-style: italic; font-size: 14px; }
   .scripture-error { color: #c0392b; font-size: 13px; font-family: 'JetBrains Mono', monospace; line-height: 1.6; }
+  /* Red-letter Words of Jesus */
+  .wj { color: #c0392b; }
+  .dark-mode .wj { color: #e05c4a; }
+  /* Red-letter toggle button */
+  .rl-toggle-btn {
+    background: none; border: 1px solid var(--border); border-radius: 4px;
+    color: var(--text3); font-size: 11px; padding: 2px 6px; cursor: pointer;
+    line-height: 1; transition: color 0.15s, border-color 0.15s, background 0.15s;
+  }
+  .rl-toggle-btn:hover { color: #c0392b; border-color: #c0392b; }
+  .rl-toggle-btn.active { color: #c0392b; border-color: #c0392b; background: rgba(192,57,43,0.08); }
 
   /* Split editor: when scripture pane is active, editor-wrap becomes column flex */
   #editor-wrap.sermon-split { flex-direction: column; }

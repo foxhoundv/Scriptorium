@@ -77,6 +77,22 @@ services:
     command: ["node", "scripts/fetch-bibles.js"]
     restart: "no"
 
+  # ── Red-letter Bible fetcher ──────────────────────────────────────────
+  # Downloads KJV and WEB with Words of Jesus marked (feature/red-letter branch).
+  # Run once after building from this branch:
+  #   docker compose run --rm bible-fetcher-rl
+  bible-fetcher-rl:
+    build: .
+    container_name: scribeflow-bible-fetcher-rl
+    profiles:
+      - tools
+    volumes:
+      - bible_data:/app/data/bibles
+    environment:
+      - NODE_ENV=production
+    command: ["node", "scripts/fetch-bibles-redletter.js"]
+    restart: "no"
+
 volumes:
   scribeflow_data:
     driver: local

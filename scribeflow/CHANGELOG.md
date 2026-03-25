@@ -4,6 +4,30 @@ All notable changes are documented here. Version increments by tenths.
 
 ---
 
+## Version 2.4 *(branch: feature/red-letter)*
+
+### Feature — Red-Letter Bible (Words of Jesus in Red)
+
+**New fetcher: `scripts/fetch-bibles-redletter.js`**
+- Downloads KJV and WEB USFM packages from ebible.org (public domain).
+- Parses USFM files and converts `\wj...\wj*` (Words of Jesus) markers to inline `[[wj]]...[[/wj]]` tokens stored in each verse's `text` field.
+- Outputs `kjv-rl.json` and `web-rl.json` alongside existing plain-text translations.
+- Updates `index.json` with a `redLetter: true` flag so the frontend knows which translations carry red-letter data.
+
+**Backend**
+- Added `adm-zip` dependency for ZIP extraction (USFM packages are distributed as zip archives; pure-JS, no native compilation).
+- `docker-compose.yml`: new `bible-fetcher-rl` service (profile: `tools`) — run once with `docker compose run --rm bible-fetcher-rl`.
+
+**Frontend**
+- Translation selector: red-letter translations are labeled with a `✦` glyph and show the full name (e.g. "KJV ✦ — King James Version (Red Letter)").
+- A toggle button (`✦`) appears in the scripture header only when a red-letter translation is selected; clicking it switches between colored and plain rendering without reloading the page.
+- `renderVerseText()` converts `[[wj]]`/`[[/wj]]` tokens to `<span class="wj">` after HTML-escaping the text, keeping rendering safe.
+- `.wj` CSS: `color: #c0392b` (light mode), `color: #e05c4a` (dark mode).
+
+**No changes to existing translations** — plain `kjv.json` / `web.json` etc. are untouched; red-letter data is additive.
+
+---
+
 ## Version 2.3
 
 ### Bug Fixes

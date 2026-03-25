@@ -2152,6 +2152,18 @@ function initScripturePane() {
 
   // Version change: re-load current chapter if one is selected
   document.getElementById('bible-version-select').addEventListener('change', () => {
+    _updateRlToggleVisibility();
+    const book = document.getElementById('bible-book-select').value;
+    const ch   = document.getElementById('bible-chapter-select').value;
+    if (book && ch) loadChapter(book, parseInt(ch));
+  });
+
+  // Red-letter toggle
+  document.getElementById('rl-toggle').addEventListener('click', () => {
+    _rlEnabled = !_rlEnabled;
+    const btn = document.getElementById('rl-toggle');
+    btn.classList.toggle('active', _rlEnabled);
+    // Re-render current content with new state
     const book = document.getElementById('bible-book-select').value;
     const ch   = document.getElementById('bible-chapter-select').value;
     if (book && ch) loadChapter(book, parseInt(ch));
@@ -2217,18 +2229,35 @@ function initScriptureNavSelects() {
   });
 }
 
+// Tracks which translation IDs have red-letter data
+const _rlTranslations = new Set();
+
 async function loadBibleTranslations() {
   try {
     const res = await fetch(`${API}/api/bible/translations`);
     if (!res.ok) return;
     const translations = await res.json();
     if (!translations.length) return;
+    _rlTranslations.clear();
+    translations.filter(t => t.redLetter).forEach(t => _rlTranslations.add(t.id));
     const sel = document.getElementById('bible-version-select');
     sel.innerHTML = translations.map(t =>
-      `<option value="${t.id}">${t.label} — ${t.name}</option>`
+      `<option value="${t.id}">${t.label}${t.redLetter ? ' ✦' : ''} — ${t.name}</option>`
     ).join('');
+    _updateRlToggleVisibility();
   } catch(e) { /* keep default KJV */ }
 }
+
+function _updateRlToggleVisibility() {
+  const sel    = document.getElementById('bible-version-select');
+  const btn    = document.getElementById('rl-toggle');
+  if (!sel || !btn) return;
+  const isRl = _rlTranslations.has(sel.value);
+  btn.style.display = isRl ? '' : 'none';
+}
+
+// true = render red-letter markup; persisted per session
+let _rlEnabled = true;
 
 async function loadChapter(book, chapter) {
   const version   = document.getElementById('bible-version-select').value;
@@ -2266,12 +2295,26 @@ async function lookupScripture(ref) {
   }
 }
 
+function renderVerseText(raw) {
+  // Escape HTML first, then convert [[wj]]/[[/wj]] tokens to spans
+  const escaped = escHtml(raw);
+  if (!_rlEnabled || !escaped.includes('[[wj]]')) return escaped;
+  return escaped
+    .replace(/\[\[wj\]\]/g,  '<span class="wj">')
+    .replace(/\[\[\/wj\]\]/g, '</span>');
+}
+
 function renderScriptureContent(data) {
   const contentEl = document.getElementById('scripture-content');
+  // Show the toggle button in its correct state when content loads
+  const rlBtn = document.getElementById('rl-toggle');
+  if (rlBtn && rlBtn.style.display !== 'none') {
+    rlBtn.classList.toggle('active', _rlEnabled);
+  }
   let inner = `<div class="scripture-book-title">${escHtml(data.reference)}`
     + ` <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);font-weight:400;">${escHtml(data.translation)}</span></div>`;
   inner += data.verses.map(v =>
-    `<div class="scripture-verse"><span class="scripture-verse-num">${v.verse}</span>${escHtml(v.text)}</div>`
+    `<div class="scripture-verse"><span class="scripture-verse-num">${v.verse}</span>${renderVerseText(v.text)}</div>`
   ).join('');
   contentEl.innerHTML = inner;
   contentEl.scrollTop = 0;
