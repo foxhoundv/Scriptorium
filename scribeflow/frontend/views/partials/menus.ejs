@@ -1,0 +1,254 @@
+﻿<!-- EXPORT MENU (hidden) -->
+<div id="export-menu" style="display:none;" class="export-menu">
+  <div class="export-item" data-format="txt">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    Plain Text (.txt)
+  </div>
+  <div class="export-item" data-format="md">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    Markdown (.md)
+  </div>
+  <div class="export-item" data-format="docx">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    Word Document (.docx)
+  </div>
+  <div class="export-item" data-format="html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    HTML / Print-to-PDF
+  </div>
+  <div style="height:1px;background:var(--border);margin:4px 0;"></div>
+  <div class="export-item" data-format="json">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Backup (.json)
+  </div>
+</div>
+
+<!-- CTX MENU -->
+<div id="ctx-menu">
+  <div class="ctx-item" id="ctx-add-doc">＋ New Document</div>
+  <div class="ctx-item" id="ctx-add-folder">📁 New Folder</div>
+  <div class="ctx-item" id="ctx-rename">✏️ Rename</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item danger" id="ctx-delete">🗑 Delete</div>
+</div>
+
+<!-- PROJECT SETTINGS MODAL -->
+<div id="settings-overlay">
+  <div id="settings-panel">
+    <div id="settings-header">
+      <h2>⚙ Project Settings <span id="settings-project-name"></span></h2>
+      <button id="settings-close">✕</button>
+    </div>
+    <div id="settings-body">
+      <div id="settings-nav">
+        <div class="sn-item active" data-section="general"><span class="sn-icon">📝</span> General</div>
+        <div class="sn-item" data-section="goals"><span class="sn-icon">🎯</span> Goals</div>
+        <div class="sn-item" data-section="style"><span class="sn-icon">🎨</span> Doc Style</div>
+        <div class="sn-item" data-section="characters"><span class="sn-icon">👤</span> Characters</div>
+        <div class="sn-item" data-section="places"><span class="sn-icon">📍</span> Places</div>
+        <div class="sn-item" data-section="hotlinks"><span class="sn-icon">🔗</span> Hot-Links</div>
+        <div class="sn-item" id="sn-research-type" data-section="researchtype" style="display:none;"><span class="sn-icon">🔬</span> Research Type</div>
+      </div>
+      <div id="settings-content">
+
+
+        <!-- GENERAL SECTION -->
+        <div class="settings-section active" id="section-general">
+          <h3>General</h3>
+          <p class="section-desc">Basic project information and metadata.</p>
+          <div class="settings-field">
+            <label>Project Title</label>
+            <input type="text" class="settings-input" id="settings-title-input" placeholder="My Novel" />
+          </div>
+          <div class="settings-field">
+            <label>Description / Logline</label>
+            <textarea class="settings-input" id="settings-desc-input" rows="3" placeholder="A brief description of your project…" style="resize:vertical;min-height:80px;"></textarea>
+          </div>
+          <div class="settings-field">
+            <label>Author Name</label>
+            <input type="text" class="settings-input" id="settings-author-input" placeholder="Your name" />
+          </div>
+        </div>
+
+        <!-- GOALS SECTION -->
+        <div class="settings-section" id="section-goals">
+          <h3>Writing Goals</h3>
+          <p class="section-desc">Set targets to track your progress across the project.</p>
+          <div class="goal-grid">
+            <div class="goal-card">
+              <label>Final Word Count</label>
+              <div class="goal-input-row">
+                <input type="number" id="goal-final-wc" placeholder="80000" min="0" />
+                <span class="goal-unit">words</span>
+              </div>
+              <div class="goal-progress-wrap">
+                <div class="goal-progress-label">
+                  <span id="goal-final-current">0 written</span>
+                  <span id="goal-final-pct">0%</span>
+                </div>
+                <div class="goal-bar"><div class="goal-fill" id="goal-final-fill" style="width:0%"></div></div>
+              </div>
+            </div>
+            <div class="goal-card">
+              <label>Daily Word Goal</label>
+              <div class="goal-input-row">
+                <input type="number" id="goal-daily-wc" placeholder="500" min="0" />
+                <span class="goal-unit">words/day</span>
+              </div>
+              <div class="goal-progress-wrap">
+                <div class="goal-progress-label">
+                  <span id="goal-daily-current">0 today</span>
+                  <span id="goal-daily-pct">0%</span>
+                </div>
+                <div class="goal-bar"><div class="goal-fill" id="goal-daily-fill" style="width:0%"></div></div>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:20px;" class="settings-field">
+            <label>Deadline</label>
+            <input type="date" class="settings-input" id="goal-deadline" />
+            <div class="field-hint" id="goal-deadline-hint"></div>
+          </div>
+        </div>
+
+
+        <!-- DOCUMENT STYLE SECTION -->
+        <div class="settings-section" id="section-style">
+          <h3>Document Style</h3>
+          <p class="section-desc">Choose a writing template for this project. This sets default folder structure, compile settings, and document layout. <strong>Cannot be changed after the project is created.</strong></p>
+          <div class="style-grid" id="style-grid"></div>
+          <div class="style-locked-notice" id="style-locked-notice">
+            🔒 The document style was set when this project was created and cannot be changed. Create a new project to use a different style.
+          </div>
+        </div>
+
+        <!-- CHARACTERS SECTION -->
+        <div class="settings-section" id="section-characters">
+          <h3>Characters</h3>
+          <p class="section-desc">Quickly add character pages to your project's Binder. Each name you enter will become a dedicated document in the <em>Characters</em> folder, ready for notes, backstory, and descriptions. Leave a field blank to skip it.</p>
+          <div class="qalist-wrap" id="char-list"></div>
+          <div class="qa-summary" id="char-summary"></div>
+          <button class="qa-create-btn" id="char-create-btn" disabled>Create Character Pages</button>
+        </div>
+
+        <!-- PLACES SECTION -->
+        <div class="settings-section" id="section-places">
+          <h3>Places</h3>
+          <p class="section-desc">Quickly add location pages to your project's Binder. Each name you enter will become a dedicated document in the <em>Places</em> folder, ready for descriptions, maps, and lore. Leave a field blank to skip it.</p>
+          <div class="qalist-wrap" id="place-list"></div>
+          <div class="qa-summary" id="place-summary"></div>
+          <button class="qa-create-btn" id="place-create-btn" disabled>Create Place Pages</button>
+        </div>
+
+        <!-- RESEARCH TYPE SECTION (only shown when docStyle === 'research') -->
+        <div class="settings-section" id="section-researchtype">
+          <h3>Research Type</h3>
+          <p class="section-desc">Choose the kind of research this project supports. This further customises the layout and tools available to you.</p>
+          <div class="rtype-grid" id="rtype-grid">
+            <div class="rtype-card" data-rtype="academics">
+              <div class="rt-icon">🎓</div>
+              <div class="rt-name">Academics</div>
+              <div class="rt-desc">Standard research layout — outline, sources, footnotes, and bibliography tools.</div>
+            </div>
+            <div class="rtype-card" data-rtype="pastoral">
+              <div class="rt-icon">✝️</div>
+              <div class="rt-name">Pastoral Sermons</div>
+              <div class="rt-desc">Sermon preparation layout — adds a live Bible scripture pane to the editor for easy reference while writing.</div>
+            </div>
+          </div>
+          <div class="rtype-notice" id="rtype-notice">
+            ℹ️ Changing the Research Type will update the editor layout immediately after saving.
+          </div>
+        </div>
+
+        <!-- HOT-LINKS SECTION -->
+        <div class="settings-section" id="section-hotlinks">
+          <h3>Hot-Links</h3>
+          <p class="section-desc">Link character, place, and item pages so you can reference them instantly while writing.</p>
+
+          <!-- ENABLE TOGGLE -->
+          <div class="hl-toggle-row">
+            <div class="hl-toggle-info">
+              <div class="hl-toggle-label">Enable Hot-Links</div>
+              <div class="hl-toggle-desc">When enabled, typing <code class="hl-code">hl/</code> anywhere in the editor opens a quick-search menu showing your tagged pages. Select one to insert a clickable badge inline — click the badge while writing to instantly view that character's or place's synopsis and notes without leaving the page.</div>
+            </div>
+            <label class="hl-switch" title="Enable or disable Hot-Links">
+              <input type="checkbox" id="hl-enabled-toggle" checked />
+              <span class="hl-switch-track"><span class="hl-switch-thumb"></span></span>
+            </label>
+          </div>
+
+          <!-- REST OF HOT-LINKS (hidden when disabled) -->
+          <div id="hl-body">
+            <div class="hl-divider"></div>
+            <div class="hl-pages-list" id="hl-pages-list"></div>
+            <div class="hl-add-row">
+              <select id="hl-type-select">
+                <option value="character">👤 Character</option>
+                <option value="place">📍 Place</option>
+                <option value="item">📦 Item</option>
+              </select>
+              <select id="hl-doc-select" class="hl-doc-picker">
+                <option value="">— link to document —</option>
+              </select>
+              <input id="hl-fallback-input" class="hl-add-fallback" type="text" placeholder="Name upon removal…" title="What to replace this hot-link with when exporting without hot-links" />
+              <button class="hl-add-btn" id="hl-add-btn">＋ Add Hot-Link</button>
+            </div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);margin-top:6px;margin-bottom:4px;">
+              ↑ <em>Name upon removal</em> — the text substituted in place of this hot-link when exporting without hot-links (e.g. a short name or pronoun). Defaults to the full name if left blank.
+            </div>
+            <div class="hl-hint">
+              💡 Type <code class="hl-code">hl/</code> followed by a name while writing to search — up to 10 matches appear. Use arrow keys to navigate, Enter to insert.
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <div id="settings-footer">
+      <button class="btn btn-secondary" id="settings-cancel">Cancel</button>
+      <button class="btn btn-primary" id="settings-save">Save Settings</button>
+    </div>
+  </div>
+</div>
+
+<!-- HOT-LINK AUTOCOMPLETE DROPDOWN -->
+<div id="hl-dropdown">
+  <div id="hl-dropdown-header">Hot-Link — type to filter</div>
+  <div id="hl-dropdown-filter"><span>hl/</span><span id="hl-filter-text"></span></div>
+  <div id="hl-dropdown-list"></div>
+</div>
+
+<!-- HOT-LINK POPOVER -->
+<div id="hl-popover">
+  <div id="hl-popover-header">
+    <span id="hl-popover-type" class="hl-page-type"></span>
+    <span id="hl-popover-title"></span>
+    <button id="hl-popover-close">✕</button>
+  </div>
+  <div id="hl-popover-body">
+    <div id="hl-popover-synopsis"></div>
+    <div id="hl-popover-notes"></div>
+  </div>
+  <button id="hl-popover-goto">Open Document →</button>
+</div>
+<!-- EXPORT HOT-LINK CHOICE MODAL -->
+<div id="export-hl-overlay">
+  <div id="export-hl-panel">
+    <div id="export-hl-header">Export Options</div>
+    <div id="export-hl-body">
+      <p>This project has hot-links. How should they appear in the exported file?</p>
+      <div class="export-hl-choice">
+        <button class="export-hl-btn" id="export-hl-keep">
+          <div class="ehb-title">🔗 Keep hot-links as plain text</div>
+          <div class="ehb-desc">Hot-link widgets are exported as the character/place name (e.g. "Matthew Triton")</div>
+        </button>
+        <button class="export-hl-btn" id="export-hl-replace">
+          <div class="ehb-title">✏️ Replace with fallback names</div>
+          <div class="ehb-desc">Each hot-link is replaced with its "Name upon removal" (e.g. "Matt"), or the full name if none was set</div>
+        </button>
+      </div>
+      <button class="export-hl-cancel" id="export-hl-cancel">Cancel</button>
+    </div>
+  </div>
+</div>

@@ -17,6 +17,8 @@ const { getConfig, saveConfig } = require('./config');
 const { getUser }     = require('./users');
 
 const app  = express();
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, '..', 'frontend', 'views'));
 const PORT = process.env.PORT    || 3051;
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const PROJECTS_DIR = path.join(DATA_DIR, 'projects');
@@ -132,7 +134,7 @@ app.get('/api/health', async (req, res) => {
 
 // SPA fallback
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'frontend', 'public', 'index.html'));
+  res.render('index');
 });
 
 // ── SOCKET.IO: REAL-TIME COLLABORATION ────────────────────────────────────

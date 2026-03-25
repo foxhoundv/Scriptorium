@@ -1,0 +1,29 @@
+﻿<!-- HOME SCREEN -->
+<div id="home-screen">
+  <div id="home-header">
+    <div id="home-logo">ScribeFlow</div>
+    <div id="home-tagline">Your self-hosted writing workspace</div>
+  </div>
+  <div id="home-body">
+    <div id="project-list-col">
+      <div id="project-list-header">
+        <h3>Recent Projects</h3>
+      </div>
+      <div id="project-list"><div style="color:var(--sidebar-muted);font-family:JetBrains Mono,monospace;font-size:13px;padding:16px 0;">Loading projects…</div></div>
+    </div>
+    <div id="home-new-col">
+      <h3>New Project</h3>
+      <div id="new-project-form">
+        <input id="new-project-title" type="text" placeholder="Project title…" />
+        <button id="new-project-btn">＋ Create Project</button>
+        <div class="import-divider"><span>or import</span></div>
+        <button id="import-scriv-btn">📥 Import Scrivener File</button>
+        <input id="import-scriv-input" type="file" accept=".scriv,.scrivx,.zip" />
+        <div id="import-progress">
+          <span id="import-progress-text">Importing…</span>
+          <div id="import-progress-bar"><div id="import-progress-fill"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

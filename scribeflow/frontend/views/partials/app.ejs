@@ -1,0 +1,184 @@
+﻿<div id="app">
+  <!-- BINDER -->
+  <div id="binder">
+    <div id="binder-header">
+      <span id="binder-title">Binder</span>
+      <button id="binder-add" title="Add document">＋</button>
+    </div>
+    <div id="binder-tree"></div>
+  </div>
+  <div id="binder-resize-handle"></div>
+
+  <!-- MAIN CONTENT -->
+  <div id="main">
+    <!-- COLLABORATION PRESENCE BAR -->
+    <div id="collab-bar">
+      <div id="collab-avatars"></div>
+      <span id="collab-text"></span>
+    </div>
+
+    <!-- FORMAT BAR -->
+    <div id="format-bar">
+      <select class="fmt-select" id="fmt-block">
+        <option value="p">Paragraph</option>
+        <option value="h1">Heading 1</option>
+        <option value="h2">Heading 2</option>
+        <option value="h3">Heading 3</option>
+        <option value="blockquote">Blockquote</option>
+      </select>
+      <div class="fmt-sep"></div>
+      <button class="fmt-btn" data-cmd="bold" title="Bold (Ctrl+B)"><strong>B</strong></button>
+      <button class="fmt-btn" data-cmd="italic" title="Italic (Ctrl+I)"><em>I</em></button>
+      <button class="fmt-btn" data-cmd="underline" title="Underline (Ctrl+U)"><u>U</u></button>
+      <button class="fmt-btn" data-cmd="strikeThrough" title="Strikethrough"><s>S</s></button>
+      <div class="fmt-sep"></div>
+      <button class="fmt-btn" data-cmd="justifyLeft" title="Align left">⬅</button>
+      <button class="fmt-btn" data-cmd="justifyCenter" title="Center">⬛</button>
+      <button class="fmt-btn" data-cmd="justifyRight" title="Align right">➡</button>
+      <div class="fmt-sep"></div>
+      <button class="fmt-btn" data-cmd="insertUnorderedList" title="Bullet list">≡</button>
+      <button class="fmt-btn" data-cmd="insertOrderedList" title="Numbered list">#≡</button>
+      <div class="fmt-sep"></div>
+      <button class="fmt-btn" id="fmt-hr" title="Insert divider">—</button>
+      <button class="fmt-btn" id="fmt-blockquote" title="Blockquote">"</button>
+    </div>
+
+    <!-- CONTENT AREA -->
+    <div id="content-area">
+      <!-- EDITOR -->
+      <div id="editor-wrap">
+        <!-- SCRIPTURE PANE (only shown for Pastoral Sermons research type) -->
+        <div id="scripture-pane">
+          <div id="scripture-header">
+            <span id="scripture-label">Scripture</span>
+            <select id="bible-version-select" class="scripture-sel" title="Translation">
+              <option value="kjv">KJV</option>
+            </select>
+            <div class="sb-divider-v"></div>
+            <select id="bible-testament-select" class="scripture-sel" title="Testament">
+              <option value="">— Testament —</option>
+              <option value="ot">Old Testament</option>
+              <option value="nt">New Testament</option>
+            </select>
+            <select id="bible-book-select" class="scripture-sel" title="Book" disabled>
+              <option value="">— Book —</option>
+            </select>
+            <select id="bible-chapter-select" class="scripture-sel" title="Chapter" disabled>
+              <option value="">— Ch —</option>
+            </select>
+            <div class="sb-divider-v"></div>
+            <input id="bible-ref-input" type="text" placeholder="or type ref: John 3:16" title="Type a reference directly" />
+            <button id="bible-lookup-btn">Go</button>
+          </div>
+          <div id="scripture-content">
+            <div class="scripture-loading">Choose a testament, book, and chapter — or type a reference above.</div>
+          </div>
+          <div id="scripture-resize-handle"></div>
+        </div>
+        <div id="editor-title-wrap">
+          <input id="doc-title-input" type="text" placeholder="Document title…" />
+        </div>
+        <div id="editor-scroll">
+          <div id="editor" contenteditable="true" spellcheck="true" autocorrect="off" autocapitalize="sentences" data-placeholder="Begin writing…"></div>
+        </div>
+        <div id="empty-state" style="display:none;">
+          <div class="es-icon">📖</div>
+          <p>Select a document from the Binder to begin writing</p>
+        </div>
+      </div>
+
+      <!-- CORKBOARD -->
+      <div id="corkboard"></div>
+
+      <!-- INSPECTOR -->
+      <div id="inspector">
+        <div id="inspector-tabs">
+          <div class="ins-tab active" data-tab="notes">Notes</div>
+          <div class="ins-tab" data-tab="meta">Meta</div>
+          <div class="ins-tab" data-tab="stats">Stats</div>
+        </div>
+        <div id="inspector-content">
+          <div id="ins-notes" class="ins-tab-panel">
+            <div class="ins-section">
+              <div class="ins-label">Synopsis</div>
+              <textarea class="ins-textarea" id="ins-synopsis" rows="4" placeholder="Brief summary of this scene or chapter…"></textarea>
+            </div>
+            <div class="ins-section">
+              <div class="ins-label">Notes</div>
+              <textarea class="ins-textarea" id="ins-notes-text" rows="6" placeholder="Research notes, ideas, reminders…"></textarea>
+            </div>
+          </div>
+          <div id="ins-meta" class="ins-tab-panel" style="display:none;">
+            <div class="ins-section">
+              <div class="ins-label">Label</div>
+              <select class="ins-select" id="ins-label">
+                <option value="none">None</option>
+                <option value="scene">Scene</option>
+                <option value="chapter">Chapter</option>
+                <option value="character">Character</option>
+                <option value="research">Research</option>
+                <option value="outline">Outline</option>
+              </select>
+            </div>
+            <div class="ins-section">
+              <div class="ins-label">Status</div>
+              <select class="ins-select" id="ins-status">
+                <option value="draft">Draft</option>
+                <option value="revised">Revised</option>
+                <option value="final">Final</option>
+                <option value="todo">To Do</option>
+              </select>
+            </div>
+            <div class="ins-section">
+              <div class="ins-checkbox-row">
+                <input type="checkbox" id="ins-compile" checked />
+                <label for="ins-compile">Include in Compile</label>
+              </div>
+            </div>
+            <div class="ins-section">
+              <div class="ins-label">Target Words</div>
+              <input type="number" class="ins-textarea" id="ins-target-words" style="min-height:0;height:36px;resize:none;" placeholder="0" min="0" />
+            </div>
+          </div>
+          <div id="ins-stats" class="ins-tab-panel" style="display:none;">
+            <div class="ins-section">
+              <div class="ins-label">This Document</div>
+              <div class="ins-stat"><span class="ins-stat-label">Words</span><span class="ins-stat-value" id="stat-words">0</span></div>
+              <div class="ins-stat"><span class="ins-stat-label">Characters</span><span class="ins-stat-value" id="stat-chars">0</span></div>
+              <div class="ins-stat"><span class="ins-stat-label">Paragraphs</span><span class="ins-stat-value" id="stat-paras">0</span></div>
+              <div class="ins-stat"><span class="ins-stat-label">Reading time</span><span class="ins-stat-value" id="stat-read">—</span></div>
+            </div>
+            <div class="ins-section">
+              <div class="ins-label">Target Progress</div>
+              <div id="stat-target-label" style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--text3);margin-bottom:4px;">0 / 0 words</div>
+              <div class="progress-bar"><div class="progress-fill" id="stat-progress" style="width:0%"></div></div>
+            </div>
+            <div class="ins-section">
+              <div class="ins-label">Project Total</div>
+              <div class="ins-stat"><span class="ins-stat-label">Total words</span><span class="ins-stat-value" id="stat-proj-words">0</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATUS BAR -->
+    <div id="status-bar">
+      <div class="sb-item">
+        <span class="sb-label">Daily</span>
+        <div class="sb-bar-wrap"><div class="sb-bar-fill" id="sb-daily-fill" style="width:0%"></div></div>
+        <span class="sb-pct" id="sb-daily-pct">—</span>
+        <span class="sb-wc" id="sb-daily-wc"></span>
+      </div>
+      <div class="sb-sep"></div>
+      <div class="sb-item">
+        <span class="sb-label">Final</span>
+        <div class="sb-bar-wrap"><div class="sb-bar-fill" id="sb-final-fill" style="width:0%"></div></div>
+        <span class="sb-pct" id="sb-final-pct">—</span>
+        <span class="sb-wc" id="sb-final-wc"></span>
+      </div>
+      <div class="sb-sep"></div>
+      <span id="sb-deadline-chip"></span>
+    </div>
+  </div>
+</div>
