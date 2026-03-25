@@ -1,15 +1,3 @@
-﻿<!-- AWAITING APPROVAL SCREEN -->
-<div id="pending-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--sidebar-bg);z-index:9998;align-items:center;justify-content:center;">
-  <div class="auth-card">
-    <div class="auth-logo">ScribeFlow</div>
-    <p style="color:var(--text2);font-size:15px;font-weight:600;">Awaiting Approval</p>
-    <div class="auth-divider"></div>
-    <p style="color:var(--text3);font-size:13px;text-align:center;max-width:300px;line-height:1.7;">Your Google account has been registered. An administrator must approve your access before you can continue.</p>
-    <p style="color:var(--text3);font-size:12px;">You can close this tab and try again after approval.</p>
-    <a href="/auth/logout" style="color:var(--accent);font-size:13px;text-decoration:none;margin-top:4px;">← Sign out</a>
-  </div>
-</div>
-
 <!-- APP SETTINGS PANEL -->
 <div id="admin-overlay">
   <div id="admin-panel">
@@ -20,58 +8,52 @@
     <div id="admin-body">
       <div id="admin-nav">
         <div class="an-item active" data-asection="multiuser">👥 Multi-User</div>
-        <div class="an-item" id="an-users" data-asection="users" style="display:none">🛡 Users <span id="user-pending-dot"></span></div>
+        <div class="an-item" id="an-users" data-asection="users" style="display:none">🛡 Users</div>
       </div>
       <div id="admin-content">
 
         <!-- MULTI-USER SECTION -->
         <div class="admin-section active" id="asection-multiuser">
-          <h3>Multi-User Access</h3>
-          <p>Enable Google SSO to let multiple users log in with their own project libraries. The first account to sign in becomes the permanent Administrator.</p>
-
-          <div id="mu-cred-status"></div>
-
-          <!-- SSO disabled view -->
-          <div id="mu-disabled-view">
-            <div class="mu-status-row"><span class="mu-badge-off">● Single-user mode</span></div>
-            <p style="font-size:13px;color:var(--text3);margin-bottom:16px;">Before enabling, set these environment variables in your Docker deployment, then rebuild:</p>
-            <code style="display:block;background:var(--bg3);padding:10px 14px;border-radius:6px;font-size:12px;color:var(--text2);line-height:1.9;margin-bottom:20px;">GOOGLE_CLIENT_ID=&lt;your-client-id&gt;.apps.googleusercontent.com<br>GOOGLE_CLIENT_SECRET=&lt;your-secret&gt;<br>GOOGLE_CALLBACK_URL=https://&lt;your-domain&gt;/auth/google/callback<br>SESSION_SECRET=&lt;long-random-string&gt;</code>
-            <button id="mu-enable-btn" class="settings-btn-primary" disabled>Enable Multi-User SSO</button>
-            <p style="font-size:12px;color:var(--text3);margin-top:10px;">You'll be redirected to Google sign-in to complete setup. All existing projects will be assigned to your account.</p>
-          </div>
-
-          <!-- SSO enabled view -->
-          <div id="mu-enabled-view" style="display:none">
-            <div class="mu-status-row"><span class="mu-badge-on">● Multi-user SSO active</span></div>
-            <div class="mu-toggle-row">
-              <label>Require admin approval for new users</label>
-              <label class="toggle-switch">
-                <input type="checkbox" id="mu-require-approval">
-                <span class="toggle-slider"></span>
-              </label>
-            </div>
-            <div id="mu-admin-only" style="display:none">
-              <div class="danger-zone">
-                <h4>Danger Zone</h4>
-                <p>Disabling SSO returns the app to single-user mode. All data and user accounts are preserved.</p>
-                <button id="mu-disable-btn" class="settings-btn-danger">Disable SSO &amp; Return to Single-User</button>
-              </div>
-            </div>
-          </div>
+          <h3>Multi-User Mode</h3>
+          <div class="mu-status-row"><span class="mu-badge-on" id="mu-status-badge">● Multi-user active</span></div>
+          <p style="font-size:13px;color:var(--text3);line-height:1.7;margin-top:12px;">
+            Multi-user mode is controlled by the <code>AUTH_ENABLED</code> environment variable in your
+            <code>docker-compose.yml</code>. Restart the container after changing it.
+          </p>
+          <p style="font-size:13px;color:var(--text3);line-height:1.7;margin-top:8px;">
+            Use the <strong>Users</strong> tab to create and manage team accounts.
+          </p>
         </div>
 
         <!-- USER MANAGEMENT SECTION -->
         <div class="admin-section" id="asection-users">
           <h3>User Management</h3>
-          <p>Manage who has access to ScribeFlow.</p>
-          <div class="um-section">
-            <div class="um-section-head">Pending Approval</div>
-            <div id="users-pending-list"><span class="no-users">No pending users</span></div>
+
+          <!-- Create user form -->
+          <div id="create-user-form" style="background:var(--bg2);border-radius:8px;padding:14px;margin-bottom:20px;">
+            <div style="font-weight:600;font-size:13px;margin-bottom:10px;">Create New User</div>
+            <div class="um-form-row">
+              <input type="text" id="cu-username" placeholder="Username" class="settings-input" style="flex:1;min-width:120px">
+              <input type="text" id="cu-displayname" placeholder="Display Name" class="settings-input" style="flex:1;min-width:120px">
+            </div>
+            <div class="um-form-row" style="margin-top:8px;">
+              <input type="password" id="cu-password" placeholder="Password" class="settings-input" style="flex:1;min-width:120px">
+              <select id="cu-role" class="settings-input" style="flex:0 0 90px">
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+              </select>
+              <button id="cu-create-btn" class="settings-btn-primary">Create</button>
+            </div>
+            <p id="cu-message" style="font-size:12px;margin-top:6px;display:none"></p>
           </div>
+
+          <!-- Active users -->
           <div class="um-section">
             <div class="um-section-head">Active Users</div>
             <div id="users-active-list"><span class="no-users">Loading…</span></div>
           </div>
+
+          <!-- Suspended users -->
           <div class="um-section">
             <div class="um-section-head">Suspended</div>
             <div id="users-suspended-list"><span class="no-users">None</span></div>
@@ -116,17 +98,11 @@
     <div class="auth-logo">ScribeFlow</div>
     <p class="auth-tagline">Your self-hosted writing workspace</p>
     <div class="auth-divider"></div>
-    <a href="/auth/google" class="auth-google-btn">
-      <!-- Google "G" logo -->
-      <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-      </svg>
-      Sign in with Google
-    </a>
+    <form class="auth-login-form" id="login-form" onsubmit="return false">
+      <input type="text"     id="login-username" class="auth-input" placeholder="Username" autocomplete="username" required>
+      <input type="password" id="login-password" class="auth-input" placeholder="Password" autocomplete="current-password" required>
+      <button type="submit"  id="login-btn"      class="auth-submit">Sign In</button>
+    </form>
     <p id="auth-error-msg" class="auth-error" style="display:none"></p>
-    <p class="auth-note">Access is limited to authorized Google accounts configured by your administrator.</p>
   </div>
 </div>

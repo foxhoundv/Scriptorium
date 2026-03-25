@@ -1,20 +1,15 @@
-const express = require('express');
-const router  = express.Router();
-const fs      = require('fs-extra');
-const path    = require('path');
+const express  = require('express');
+const router   = express.Router();
 const { v4: uuidv4 } = require('uuid');
+const { getProject, saveProject, deleteProject, getAllProjects } = require('../db');
 const shareRouter = require('./share');
-
-// ── Paths ──────────────────────────────────────────────────────────────────
-function projectsDir(req)       { return path.join(req.app.locals.DATA_DIR, 'projects'); }
-function projectPath(req, id)   { return path.join(projectsDir(req), `${id}.json`); }
 
 // ── Access helpers ─────────────────────────────────────────────────────────
 function userAccess(project, userId) {
-  if (!userId) return 'owner';                           // single-user: full access
+  if (!userId) return 'owner';                        // single-user: full access
   if (project.ownerId === userId) return 'owner';
   const share = (project.sharedWith || []).find(s => s.userId === userId);
-  if (share) return share.role;                          // 'editor' | 'viewer'
+  if (share) return share.role;                       // 'editor' | 'viewer'
   return null;
 }
 
@@ -37,7 +32,7 @@ function createDefaultProject(title, ownerId) {
     binder: {
       id: rootId, title: 'Root', type: 'root',
       children: [
-        { id: manuscriptId, title: 'Manuscript', type: 'folder', icon: 'book',   expanded: true,  children: [
+        { id: manuscriptId, title: 'Manuscript', type: 'folder', icon: 'book', expanded: true, children: [
           { id: welcomeDocId, title: 'Welcome to ScribeFlow', type: 'document', icon: 'file-text', children: [] }
         ]},
         { id: researchId, title: 'Research', type: 'folder', icon: 'search', expanded: false, children: [] },
@@ -58,34 +53,29 @@ function createDefaultProject(title, ownerId) {
 }
 
 // ── GET /api/projects ──────────────────────────────────────────────────────
-router.get('/', async (req, res) => {
+router.get('/', (req, res) => {
   try {
-    const dir = projectsDir(req);
-    await fs.ensureDir(dir);
-    const files    = (await fs.readdir(dir)).filter(f => f.endsWith('.json'));
+    const all      = getAllProjects();
     const projects = [];
 
-    for (const file of files) {
-      try {
-        const data   = await fs.readJson(path.join(dir, file));
-        const access = userAccess(data, req.userId);
-        if (!access) continue;                // no access — skip
+    for (const data of all) {
+      const access = userAccess(data, req.userId);
+      if (!access) continue;
 
-        const settings = data.settings || {};
-        projects.push({
-          id:          data.id,
-          title:       data.title,
-          description: data.description,
-          createdAt:   data.createdAt,
-          updatedAt:   data.updatedAt,
-          wordCount:   Object.values(data.documents || {}).reduce((s, d) => s + (d.wordCount || 0), 0),
-          docStyle:    settings.docStyle    || null,
-          researchType:settings.researchType|| null,
-          ownerId:     data.ownerId         || null,
-          sharedWith:  data.sharedWith      || [],
-          accessRole:  access               // 'owner' | 'editor' | 'viewer'
-        });
-      } catch {}
+      const settings = data.settings || {};
+      projects.push({
+        id:           data.id,
+        title:        data.title,
+        description:  data.description,
+        createdAt:    data.createdAt,
+        updatedAt:    data.updatedAt,
+        wordCount:    Object.values(data.documents || {}).reduce((s, d) => s + (d.wordCount || 0), 0),
+        docStyle:     settings.docStyle     || null,
+        researchType: settings.researchType || null,
+        ownerId:      data.ownerId          || null,
+        sharedWith:   data.sharedWith       || [],
+        accessRole:   access
+      });
     }
 
     projects.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
@@ -96,11 +86,10 @@ router.get('/', async (req, res) => {
 });
 
 // ── GET /api/projects/:id ─────────────────────────────────────────────────
-router.get('/:id', async (req, res) => {
+router.get('/:id', (req, res) => {
   try {
-    const fp = projectPath(req, req.params.id);
-    if (!await fs.pathExists(fp)) return res.status(404).json({ error: 'Project not found' });
-    const project = await fs.readJson(fp);
+    const project = getProject(req.params.id);
+    if (!project) return res.status(404).json({ error: 'Project not found' });
     if (!userAccess(project, req.userId)) return res.status(403).json({ error: 'Access denied' });
     res.json(project);
   } catch (err) {
@@ -109,13 +98,12 @@ router.get('/:id', async (req, res) => {
 });
 
 // ── POST /api/projects ────────────────────────────────────────────────────
-router.post('/', async (req, res) => {
+router.post('/', (req, res) => {
   try {
     const { title } = req.body;
     if (!title) return res.status(400).json({ error: 'Title required' });
     const project = createDefaultProject(title, req.userId || null);
-    await fs.ensureDir(projectsDir(req));
-    await fs.writeJson(projectPath(req, project.id), project, { spaces: 2 });
+    saveProject(project);
     res.status(201).json(project);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -123,24 +111,23 @@ router.post('/', async (req, res) => {
 });
 
 // ── PUT /api/projects/:id ─────────────────────────────────────────────────
-router.put('/:id', async (req, res) => {
+router.put('/:id', (req, res) => {
   try {
-    const fp = projectPath(req, req.params.id);
-    if (!await fs.pathExists(fp)) return res.status(404).json({ error: 'Project not found' });
-    const existing = await fs.readJson(fp);
-    const access   = userAccess(existing, req.userId);
-    if (!access)            return res.status(403).json({ error: 'Access denied' });
+    const existing = getProject(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Project not found' });
+    const access = userAccess(existing, req.userId);
+    if (!access)             return res.status(403).json({ error: 'Access denied' });
     if (access === 'viewer') return res.status(403).json({ error: 'Viewers cannot edit projects' });
 
     const updated = {
       ...existing,
       ...req.body,
       id:         existing.id,
-      ownerId:    existing.ownerId,    // ownership is never changed via PUT
+      ownerId:    existing.ownerId,
       sharedWith: existing.sharedWith,
       updatedAt:  new Date().toISOString()
     };
-    await fs.writeJson(fp, updated, { spaces: 2 });
+    saveProject(updated);
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -148,23 +135,20 @@ router.put('/:id', async (req, res) => {
 });
 
 // ── DELETE /api/projects/:id ──────────────────────────────────────────────
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', (req, res) => {
   try {
-    const fp = projectPath(req, req.params.id);
-    if (await fs.pathExists(fp)) {
-      const existing = await fs.readJson(fp);
-      if (req.userId && existing.ownerId !== req.userId) {
-        return res.status(403).json({ error: 'Only the project owner can delete it' });
-      }
+    const project = getProject(req.params.id);
+    if (project && req.userId && project.ownerId !== req.userId) {
+      return res.status(403).json({ error: 'Only the project owner can delete it' });
     }
-    await fs.remove(fp);
+    deleteProject(req.params.id);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ── Share sub-router mounted at /:id/share ────────────────────────────────
+// ── Share sub-router ───────────────────────────────────────────────────────
 router.use('/:id/share', shareRouter);
 
 module.exports = router;

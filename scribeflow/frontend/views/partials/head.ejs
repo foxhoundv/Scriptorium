@@ -885,6 +885,8 @@
   }
   #collab-avatars { display:flex; gap:-4px; }
   .presence-avatar { width:20px; height:20px; border-radius:50%; object-fit:cover; border:2px solid var(--bg); margin-right:-4px; background:var(--bg3); }
+  .presence-avatar-initial { width:20px; height:20px; border-radius:50%; background:var(--accent); color:#fff; font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center; border:2px solid var(--bg); margin-right:-4px; font-family:'JetBrains Mono',monospace; }
+  .user-row-avatar-placeholder { width:28px; height:28px; border-radius:50%; background:var(--accent); color:#fff; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-family:'JetBrains Mono',monospace; }
 
   /* ── AUTH LOGIN OVERLAY ── */
   #auth-overlay {
@@ -903,17 +905,23 @@
   }
   .auth-tagline { color: var(--text3); font-size: 14px; text-align: center; margin-top: -6px; }
   .auth-divider { width: 40px; height: 1px; background: var(--border); }
-  .auth-google-btn {
-    display: flex; align-items: center; gap: 10px;
-    background: #fff; color: #3c4043; border: 1px solid #dadce0; border-radius: 6px;
-    padding: 11px 24px; font-size: 14px; font-family: 'JetBrains Mono', monospace;
-    cursor: pointer; text-decoration: none; transition: background 0.15s, box-shadow 0.15s;
-    white-space: nowrap;
+  .auth-login-form { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+  .auth-input {
+    background: var(--bg3); border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text); font-size: 14px; padding: 9px 12px; width: 100%; box-sizing: border-box;
+    font-family: 'JetBrains Mono', monospace; transition: border-color 0.15s;
   }
-  .auth-google-btn:hover { background: #f8f9fa; box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
-  .auth-google-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
-  .auth-note { color: var(--text3); font-size: 11px; text-align: center; max-width: 280px; line-height: 1.6; }
-  .auth-error { color: var(--red); font-size: 12px; font-family: 'JetBrains Mono', monospace; }
+  .auth-input:focus { outline: none; border-color: var(--accent); }
+  .auth-submit {
+    background: var(--accent); color: #fff; border: none; border-radius: 6px;
+    padding: 10px 0; font-size: 14px; font-family: 'JetBrains Mono', monospace;
+    cursor: pointer; width: 100%; transition: background 0.15s; margin-top: 4px;
+  }
+  .auth-submit:hover:not(:disabled) { background: var(--accent2); }
+  .auth-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+  .auth-error { color: var(--red); font-size: 12px; font-family: 'JetBrains Mono', monospace; text-align:center; }
+  /* Create-user form row in admin panel */
+  .um-form-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
   /* ── USER AVATAR IN TOOLBAR ── */
   #user-info {

@@ -1,13 +1,8 @@
 const express = require('express');
 const router  = express.Router();
-const fs      = require('fs-extra');
-const path    = require('path');
+const { getProject } = require('../db');
 const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = require('docx');
 const { htmlToText } = require('html-to-text');
-
-function getProjectPath(req, projectId) {
-  return path.join(req.app.locals.DATA_DIR, 'projects', `${projectId}.json`);
-}
 
 function hasReadAccess(project, userId) {
   if (!userId) return true;
@@ -153,9 +148,8 @@ function prepareContent(doc, hlPages, removeHotlinks) {
 // Export as plain text
 router.get('/:projectId/txt', async (req, res) => {
   try {
-    const filePath = getProjectPath(req, req.params.projectId);
-    if (!await fs.pathExists(filePath)) return res.status(404).json({ error: 'Project not found' });
-    const project = await fs.readJson(filePath);
+    const project = getProject(req.params.projectId);
+    if (!project) return res.status(404).json({ error: 'Project not found' });
     if (!hasReadAccess(project, req.userId)) return res.status(403).json({ error: 'Access denied' });
     const docs     = collectDocuments(project.binder, project.documents);
     const hlPages  = getHlPages(project);
@@ -179,9 +173,8 @@ router.get('/:projectId/txt', async (req, res) => {
 // Export as Markdown
 router.get('/:projectId/md', async (req, res) => {
   try {
-    const filePath = getProjectPath(req, req.params.projectId);
-    if (!await fs.pathExists(filePath)) return res.status(404).json({ error: 'Project not found' });
-    const project = await fs.readJson(filePath);
+    const project = getProject(req.params.projectId);
+    if (!project) return res.status(404).json({ error: 'Project not found' });
     if (!hasReadAccess(project, req.userId)) return res.status(403).json({ error: 'Access denied' });
     const docs     = collectDocuments(project.binder, project.documents);
     const hlPages  = getHlPages(project);
@@ -208,9 +201,8 @@ router.get('/:projectId/md', async (req, res) => {
 // Export as DOCX
 router.get('/:projectId/docx', async (req, res) => {
   try {
-    const filePath = getProjectPath(req, req.params.projectId);
-    if (!await fs.pathExists(filePath)) return res.status(404).json({ error: 'Project not found' });
-    const project = await fs.readJson(filePath);
+    const project = getProject(req.params.projectId);
+    if (!project) return res.status(404).json({ error: 'Project not found' });
     if (!hasReadAccess(project, req.userId)) return res.status(403).json({ error: 'Access denied' });
     const docs     = collectDocuments(project.binder, project.documents);
     const hlPages  = getHlPages(project);
@@ -244,9 +236,8 @@ router.get('/:projectId/docx', async (req, res) => {
 // Export as HTML
 router.get('/:projectId/html', async (req, res) => {
   try {
-    const filePath = getProjectPath(req, req.params.projectId);
-    if (!await fs.pathExists(filePath)) return res.status(404).json({ error: 'Project not found' });
-    const project = await fs.readJson(filePath);
+    const project = getProject(req.params.projectId);
+    if (!project) return res.status(404).json({ error: 'Project not found' });
     if (!hasReadAccess(project, req.userId)) return res.status(403).json({ error: 'Access denied' });
     const docs     = collectDocuments(project.binder, project.documents);
     const hlPages  = getHlPages(project);
@@ -296,9 +287,8 @@ ${body}
 // Export as JSON backup (always as-is, no hotlink processing)
 router.get('/:projectId/json', async (req, res) => {
   try {
-    const filePath = getProjectPath(req, req.params.projectId);
-    if (!await fs.pathExists(filePath)) return res.status(404).json({ error: 'Project not found' });
-    const project = await fs.readJson(filePath);
+    const project = getProject(req.params.projectId);
+    if (!project) return res.status(404).json({ error: 'Project not found' });
     if (!hasReadAccess(project, req.userId)) return res.status(403).json({ error: 'Access denied' });
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(project.title)}-backup.json"`);

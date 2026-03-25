@@ -4,6 +4,11 @@ const path     = require('path');
 const fs       = require('fs-extra');
 const http     = require('http');
 const { Server: SocketIO } = require('socket.io');
+const session  = require('express-session');
+const FileStore = require('session-file-store')(session);
+
+const { initDb, migrateProjects } = require('./db');
+const { adminCount, createUser, getUser } = require('./users');
 
 const projectsRouter  = require('./routes/projects');
 const documentsRouter = require('./routes/documents');
@@ -13,26 +18,20 @@ const adminRouter     = require('./routes/admin');
 const shareRouter     = require('./routes/share');
 const authRouter      = require('./routes/auth');
 const requireAuth     = require('./middleware/auth');
-const { getConfig, saveConfig } = require('./config');
-const { getUser }     = require('./users');
 
 const app  = express();
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '..', 'frontend', 'views'));
-const PORT = process.env.PORT    || 3051;
-const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
-const PROJECTS_DIR = path.join(DATA_DIR, 'projects');
 
-// ── HTTP server (required for socket.io) ───────────────────────────────────
+const PORT        = process.env.PORT     || 3051;
+const DATA_DIR    = process.env.DATA_DIR || path.join(__dirname, 'data');
+const AUTH_ENABLED = process.env.AUTH_ENABLED === 'true';
+
+// ── HTTP server (required for socket.io) ────────────────────────────────────
 const httpServer = http.createServer(app);
 const io         = new SocketIO(httpServer);
 
-// ── SESSION + PASSPORT (always set up, strategy only if creds present) ─────
-const session        = require('express-session');
-const FileStore      = require('session-file-store')(session);
-const passport       = require('passport');
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
-
+// ── Session ──────────────────────────────────────────────────────────────────
 const SESSIONS_DIR = path.join(DATA_DIR, 'sessions');
 fs.ensureDirSync(SESSIONS_DIR);
 
@@ -48,105 +47,76 @@ const sessionMiddleware = session({
     secure:   process.env.COOKIE_SECURE === 'true'
   }
 });
-
 app.use(sessionMiddleware);
 
-// Serialize the minimal user object we need
-passport.serializeUser((user, done) => {
-  done(null, JSON.stringify({
-    id:          user.id,
-    displayName: user.displayName,
-    email:       user.emails?.[0]?.value  || '',
-    avatar:      user.photos?.[0]?.value  || ''
-  }));
-});
-passport.deserializeUser((str, done) => {
-  try { done(null, JSON.parse(str)); } catch (e) { done(e); }
-});
-
-// Register Google strategy only if credentials are available
-if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-  passport.use(new GoogleStrategy(
-    {
-      clientID:     process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL:  process.env.GOOGLE_CALLBACK_URL || '/auth/google/callback'
-    },
-    (accessToken, refreshToken, profile, done) => done(null, profile)
-  ));
-}
-
-app.use(passport.initialize());
-app.use(passport.session());
-
-// Share the session with socket.io so it can read req.user
+// Share session with socket.io
 io.use((socket, next) => sessionMiddleware(socket.request, socket.request.res || {}, next));
-io.use((socket, next) => passport.initialize()(socket.request, socket.request.res || {}, next));
-io.use((socket, next) => passport.session()(socket.request, socket.request.res || {}, next));
 
-// ── CORE MIDDLEWARE ─────────────────────────────────────────────────────────
+// ── Core middleware ──────────────────────────────────────────────────────────
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, '..', 'frontend', 'public')));
 
-app.locals.DATA_DIR = DATA_DIR;
+// ── /api/me — returns auth state + current user ───────────────────────────
+app.get('/api/me', (req, res) => {
+  if (!AUTH_ENABLED) return res.json({ authEnabled: false });
 
-// ── /api/me — public endpoint, returns auth state + current user ───────────
-app.get('/api/me', async (req, res) => {
-  const config = await getConfig();
+  const userId = req.session?.userId;
+  if (!userId)  return res.json({ authEnabled: true, user: null });
 
-  if (!config.ssoEnabled) return res.json({ authEnabled: false });
+  const user = getUser(userId);
+  if (!user)    return res.json({ authEnabled: true, user: null });
 
-  if (!req.isAuthenticated || !req.isAuthenticated()) {
-    return res.json({ authEnabled: true, user: null });
+  if (user.status === 'suspended') {
+    return res.json({
+      authEnabled: true,
+      user: { id: user.id, username: user.username, displayName: user.display_name, role: user.role, status: 'suspended' }
+    });
   }
-
-  const user = await getUser(req.user.id);
-  if (!user) return res.json({ authEnabled: true, user: null });
 
   res.json({
     authEnabled: true,
-    user: { id: user.id, name: user.name, email: user.email, avatar: user.avatar, role: user.role, status: user.status }
+    user: { id: user.id, username: user.username, displayName: user.display_name, role: user.role, status: user.status }
   });
 });
 
-// ── AUTH ROUTES (Google OAuth) ─────────────────────────────────────────────
+// ── Auth routes ──────────────────────────────────────────────────────────────
 app.use('/auth', authRouter);
 
-// ── API ROUTES (behind auth guard) ─────────────────────────────────────────
+// ── API routes (behind auth guard) ───────────────────────────────────────────
 app.use('/api/projects',  requireAuth, projectsRouter);
 app.use('/api/documents', requireAuth, documentsRouter);
 app.use('/api/export',    requireAuth, exportRouter);
 app.use('/api/bible',     bibleRouter);          // public read-only
 app.use('/api/admin',     requireAuth, adminRouter);
 
-// Health check
-app.get('/api/health', async (req, res) => {
+// ── Health check ─────────────────────────────────────────────────────────────
+app.get('/api/health', (req, res) => {
+  const { getAllProjects } = require('./db');
   try {
-    const config  = await getConfig();
-    const entries = await fs.readdir(PROJECTS_DIR).catch(() => []);
-    const count   = entries.filter(f => f.endsWith('.json')).length;
-    res.json({ status: 'ok', version: '1.7.0', name: 'ScribeFlow', projects: count, dataDir: DATA_DIR, ssoEnabled: config.ssoEnabled });
+    const count = getAllProjects().length;
+    res.json({ status: 'ok', version: '2.2.0', name: 'ScribeFlow', projects: count, dataDir: DATA_DIR, authEnabled: AUTH_ENABLED });
   } catch {
-    res.json({ status: 'ok', version: '1.7.0', name: 'ScribeFlow', projects: 0, dataDir: DATA_DIR });
+    res.json({ status: 'ok', version: '2.2.0', name: 'ScribeFlow', projects: 0, dataDir: DATA_DIR, authEnabled: AUTH_ENABLED });
   }
 });
 
-// SPA fallback
-app.get('*', (req, res) => {
-  res.render('index');
-});
+// ── SPA fallback ─────────────────────────────────────────────────────────────
+app.get('*', (req, res) => res.render('index'));
 
-// ── SOCKET.IO: REAL-TIME COLLABORATION ────────────────────────────────────
+// ── Socket.io: real-time collaboration ───────────────────────────────────────
 io.on('connection', (socket) => {
-  const gUser  = socket.request.user;
-  const userId = gUser?.id || null;
-  const userName   = gUser?.displayName || gUser?.name || 'Guest';
-  const userAvatar = gUser?.avatar || gUser?.photos?.[0]?.value || '';
+  const userId   = socket.request.session?.userId || null;
+  let   userName = 'Guest';
+  if (userId) {
+    try {
+      const u = getUser(userId);
+      if (u) userName = u.display_name || u.username;
+    } catch {}
+  }
 
   socket._userId   = userId;
   socket._userName = userName;
-  socket._avatar   = userAvatar;
   socket._rooms    = new Set();
 
   function broadcastPresence(roomKey) {
@@ -155,25 +125,13 @@ io.on('connection', (socket) => {
     if (room) {
       for (const sid of room) {
         const s = io.sockets.sockets.get(sid);
-        if (s) presence[sid] = { userId: s._userId, name: s._userName, avatar: s._avatar };
+        if (s) presence[sid] = { userId: s._userId, name: s._userName };
       }
     }
     io.to(roomKey).emit('presence-update', { users: presence });
   }
 
-  socket.on('join-doc', async ({ projectId, docId }) => {
-    // Access check when SSO is on
-    const config = await getConfig();
-    if (config.ssoEnabled && userId) {
-      try {
-        const filePath = path.join(DATA_DIR, 'projects', `${projectId}.json`);
-        const proj = await fs.readJson(filePath);
-        const isOwner = proj.ownerId === userId;
-        const isShared = (proj.sharedWith || []).some(s => s.userId === userId);
-        if (!isOwner && !isShared) return; // silently deny
-      } catch { return; }
-    }
-
+  socket.on('join-doc', ({ projectId, docId }) => {
     const roomKey = `doc:${projectId}:${docId}`;
     socket.join(roomKey);
     socket._rooms.add(roomKey);
@@ -193,100 +151,56 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    for (const roomKey of socket._rooms) {
-      broadcastPresence(roomKey);
-    }
+    for (const roomKey of socket._rooms) broadcastPresence(roomKey);
     socket._rooms.clear();
   });
 });
 
-// ── STARTUP SCAN ────────────────────────────────────────────────────────────
-async function startupScan() {
+// ── Startup ───────────────────────────────────────────────────────────────────
+async function startup() {
   const line = '─'.repeat(52);
-  const config = await getConfig();
+
+  await fs.ensureDir(DATA_DIR);
+  await fs.ensureDir(path.join(DATA_DIR, 'projects'));
+
+  // Initialize SQLite
+  initDb(DATA_DIR);
+
+  // Migrate any legacy JSON project files
+  const migrated = migrateProjects(DATA_DIR);
+
+  // Ensure admin account exists in multi-user mode
+  if (AUTH_ENABLED && adminCount() === 0) {
+    const adminUser = process.env.ADMIN_USERNAME || 'admin';
+    const adminPass = process.env.ADMIN_PASSWORD || 'admin';
+    await createUser({ username: adminUser, password: adminPass, displayName: 'Administrator', role: 'admin' });
+    if (!process.env.ADMIN_PASSWORD) {
+      console.warn('  [WARN] No ADMIN_PASSWORD set — default password "admin" used. Change it immediately!');
+    }
+  }
+
+  // Scan projects for startup log
+  const { getAllProjects } = require('./db');
+  const projects = getAllProjects();
+
   console.log(line);
-  console.log('  ScribeFlow  v1.7');
+  console.log('  ScribeFlow  v2.2');
   console.log(line);
   console.log(`  Port           : ${PORT}`);
   console.log(`  Data directory : ${DATA_DIR}`);
-  console.log(`  Auth           : ${config.ssoEnabled ? 'Multi-user SSO' : 'single-user (no login)'}`);
-  console.log(`  Google creds   : ${process.env.GOOGLE_CLIENT_ID ? 'configured' : 'not set (SSO unavailable)'}`);
+  console.log(`  Auth           : ${AUTH_ENABLED ? 'Multi-user (local accounts)' : 'single-user (no login required)'}`);
+  if (migrated > 0) console.log(`  Migrated       : ${migrated} project(s) from JSON files → SQLite`);
 
-  await fs.ensureDir(DATA_DIR);
-  await fs.ensureDir(PROJECTS_DIR);
-
-  let files;
-  try {
-    files = (await fs.readdir(PROJECTS_DIR)).filter(f => f.endsWith('.json'));
-  } catch (err) {
-    console.error(`  [ERROR] Cannot read projects dir: ${err.message}`);
-    files = [];
-  }
-
-  if (files.length === 0) {
+  if (projects.length === 0) {
     console.log('  Projects       : none found');
-    console.log(line);
   } else {
-    console.log(`  Projects found : ${files.length}`);
+    console.log(`  Projects found : ${projects.length}`);
     console.log(line);
-
-    let loaded = 0, repaired = 0, corrupted = 0;
-    for (const file of files) {
-      const filePath = path.join(PROJECTS_DIR, file);
-      try {
-        const raw = await fs.readFile(filePath, 'utf8');
-        let project;
-        try { project = JSON.parse(raw); }
-        catch (parseErr) {
-          console.warn(`  [WARN] Corrupt JSON: ${file}`);
-          await fs.copy(filePath, filePath + '.bak').catch(() => {});
-          corrupted++; continue;
-        }
-
-        let dirty = false;
-        if (!project.id)        { project.id = path.basename(file, '.json'); dirty = true; }
-        if (!project.title)     { project.title = 'Recovered Project'; dirty = true; }
-        if (!project.documents || typeof project.documents !== 'object') { project.documents = {}; dirty = true; }
-        if (!project.binder    || typeof project.binder    !== 'object') {
-          project.binder = { id: 'root', title: 'Root', type: 'root', children: [
-            { id: 'manuscript', title: 'Manuscript', type: 'folder', icon: 'book', expanded: true,  children: [] },
-            { id: 'trash',      title: 'Trash',      type: 'trash',  icon: 'trash-2', expanded: false, children: [] }
-          ]};
-          dirty = true;
-        }
-        if (!project.settings  || typeof project.settings  !== 'object') { project.settings = {}; dirty = true; }
-        if (!project.createdAt) { project.createdAt = new Date().toISOString(); dirty = true; }
-        if (!project.updatedAt) { project.updatedAt = new Date().toISOString(); dirty = true; }
-        // Ensure sharedWith exists
-        if (!Array.isArray(project.sharedWith)) { project.sharedWith = []; dirty = true; }
-
-        let wcFixed = 0;
-        for (const doc of Object.values(project.documents)) {
-          if (typeof doc.wordCount !== 'number') {
-            doc.wordCount = doc.content
-              ? doc.content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().split(' ').filter(w => w).length
-              : 0;
-            wcFixed++; dirty = true;
-          }
-        }
-
-        if (dirty) {
-          await fs.writeJson(filePath, project, { spaces: 2 });
-          repaired++;
-          console.log(`  [REPAIRED] "${project.title}"${wcFixed ? ` (+${wcFixed} wc)` : ''}`);
-        } else {
-          const wc  = Object.values(project.documents).reduce((s, d) => s + (d.wordCount || 0), 0);
-          const dc  = Object.keys(project.documents).length;
-          console.log(`  [OK]       "${project.title}" — ${dc} doc(s), ${wc.toLocaleString()} words`);
-        }
-        loaded++;
-      } catch (err) {
-        console.error(`  [ERROR] ${file}: ${err.message}`);
-        corrupted++;
-      }
+    for (const p of projects) {
+      const wc = Object.values(p.documents || {}).reduce((s, d) => s + (d.wordCount || 0), 0);
+      const dc = Object.keys(p.documents || {}).length;
+      console.log(`  [OK]       "${p.title}" — ${dc} doc(s), ${wc.toLocaleString()} words`);
     }
-    console.log(line);
-    console.log(`  Loaded: ${loaded}  |  Repaired: ${repaired}  |  Corrupt: ${corrupted}`);
   }
 
   const biblesIndex = path.join(__dirname, 'data', 'bibles', 'index.json');
@@ -299,14 +213,11 @@ async function startupScan() {
     console.log('  Bible data     : NOT FOUND — run scripts/fetch-bibles.js');
   }
   console.log(line);
+
+  httpServer.listen(PORT, '0.0.0.0', () => {
+    console.log(`  Listening on http://0.0.0.0:${PORT}`);
+    console.log(line);
+  });
 }
 
-// ── START ────────────────────────────────────────────────────────────────────
-startupScan()
-  .then(() => {
-    httpServer.listen(PORT, '0.0.0.0', () => {
-      console.log(`  Listening on http://0.0.0.0:${PORT}`);
-      console.log('─'.repeat(52));
-    });
-  })
-  .catch(err => { console.error('Fatal startup error:', err); process.exit(1); });
+startup().catch(err => { console.error('Fatal startup error:', err); process.exit(1); });

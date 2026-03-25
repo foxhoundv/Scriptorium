@@ -1,12 +1,7 @@
 const express = require('express');
-const router = express.Router();
-const fs = require('fs-extra');
-const path = require('path');
+const router  = express.Router();
 const { v4: uuidv4 } = require('uuid');
-
-function getProjectPath(req, projectId) {
-  return path.join(req.app.locals.DATA_DIR, 'projects', `${projectId}.json`);
-}
+const { getProject, saveProject } = require('../db');
 
 function hasEditAccess(project, userId) {
   if (!userId) return true;
@@ -27,12 +22,11 @@ function countWords(html) {
   return text ? text.split(' ').filter(w => w.length > 0).length : 0;
 }
 
-// GET single document within a project
-router.get('/:projectId/:docId', async (req, res) => {
+// ── GET /:projectId/:docId ─────────────────────────────────────────────────
+router.get('/:projectId/:docId', (req, res) => {
   try {
-    const filePath = getProjectPath(req, req.params.projectId);
-    if (!await fs.pathExists(filePath)) return res.status(404).json({ error: 'Project not found' });
-    const project = await fs.readJson(filePath);
+    const project = getProject(req.params.projectId);
+    if (!project) return res.status(404).json({ error: 'Project not found' });
     if (!hasReadAccess(project, req.userId)) return res.status(403).json({ error: 'Access denied' });
     const doc = project.documents[req.params.docId];
     if (!doc) return res.status(404).json({ error: 'Document not found' });
@@ -42,78 +36,59 @@ router.get('/:projectId/:docId', async (req, res) => {
   }
 });
 
-// PUT save/update document
-router.put('/:projectId/:docId', async (req, res) => {
+// ── PUT /:projectId/:docId ─────────────────────────────────────────────────
+router.put('/:projectId/:docId', (req, res) => {
   try {
-    const filePath = getProjectPath(req, req.params.projectId);
-    if (!await fs.pathExists(filePath)) return res.status(404).json({ error: 'Project not found' });
-    const project = await fs.readJson(filePath);
+    const project = getProject(req.params.projectId);
+    if (!project) return res.status(404).json({ error: 'Project not found' });
     if (!hasEditAccess(project, req.userId)) return res.status(403).json({ error: 'Viewers cannot edit documents' });
-    
+
     const existing = project.documents[req.params.docId] || {};
-    const updated = {
-      ...existing,
-      ...req.body,
-      id: req.params.docId,
-      updatedAt: new Date().toISOString()
-    };
-    
-    // Auto-calculate word count from content
-    if (req.body.content !== undefined) {
-      updated.wordCount = countWords(req.body.content);
-    }
-    
+    const updated  = { ...existing, ...req.body, id: req.params.docId, updatedAt: new Date().toISOString() };
+    if (req.body.content !== undefined) updated.wordCount = countWords(req.body.content);
+
     project.documents[req.params.docId] = updated;
     project.updatedAt = new Date().toISOString();
-    await fs.writeJson(filePath, project, { spaces: 2 });
+    saveProject(project);
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// POST create a new document in a project
-router.post('/:projectId', async (req, res) => {
+// ── POST /:projectId ───────────────────────────────────────────────────────
+router.post('/:projectId', (req, res) => {
   try {
-    const filePath = getProjectPath(req, req.params.projectId);
-    if (!await fs.pathExists(filePath)) return res.status(404).json({ error: 'Project not found' });
-    const project = await fs.readJson(filePath);
+    const project = getProject(req.params.projectId);
+    if (!project) return res.status(404).json({ error: 'Project not found' });
     if (!hasEditAccess(project, req.userId)) return res.status(403).json({ error: 'Access denied' });
-    
-    const docId = uuidv4();
+
+    const docId  = uuidv4();
     const newDoc = {
-      id: docId,
-      title: req.body.title || 'Untitled',
-      content: '',
-      synopsis: '',
-      notes: '',
-      label: 'none',
-      status: 'draft',
-      includeInCompile: true,
-      wordCount: 0,
-      targetWordCount: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      id: docId, title: req.body.title || 'Untitled',
+      content: '', synopsis: '', notes: '',
+      label: 'none', status: 'draft',
+      includeInCompile: true, wordCount: 0, targetWordCount: 0,
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
     };
-    
+
     project.documents[docId] = newDoc;
     project.updatedAt = new Date().toISOString();
-    await fs.writeJson(filePath, project, { spaces: 2 });
+    saveProject(project);
     res.status(201).json(newDoc);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// DELETE document from project
-router.delete('/:projectId/:docId', async (req, res) => {
+// ── DELETE /:projectId/:docId ─────────────────────────────────────────────
+router.delete('/:projectId/:docId', (req, res) => {
   try {
-    const filePath = getProjectPath(req, req.params.projectId);
-    if (!await fs.pathExists(filePath)) return res.status(404).json({ error: 'Project not found' });
-    const project = await fs.readJson(filePath);
+    const project = getProject(req.params.projectId);
+    if (!project) return res.status(404).json({ error: 'Project not found' });
     delete project.documents[req.params.docId];
     project.updatedAt = new Date().toISOString();
-    await fs.writeJson(filePath, project, { spaces: 2 });
+    saveProject(project);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

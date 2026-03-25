@@ -1,6 +1,6 @@
 # ScribeFlow — Self-Hosted Writing Workspace
 
-> Current version: **v2.1**
+> Current version: **v2.2**
 > A Scrivener-inspired writing application designed to run entirely on your own server via Docker or Proxmox LXC. No subscriptions, no cloud, no external dependencies at runtime.
 
 ---
@@ -452,7 +452,7 @@ docker compose logs scribeflow | head -40
 Expected startup output:
 ```
 ────────────────────────────────────────────────────────────
-  ScribeFlow  v2.1
+  ScribeFlow  v2.2
 ────────────────────────────────────────────────────────────
   Port           : 3051
   Data directory : /data
@@ -484,9 +484,9 @@ pct exec 200 -- bash /tmp/scribeflow/lxc/install.sh
 pct exec 200 -- journalctl -u scribeflow -n 30
 ```
 
-### After updating from v2.0 or earlier
+### After updating from v2.1 or earlier
 
-The frontend was split from a single `index.html` into EJS templates and static JS files in v2.1. After pulling the update run:
+The backend now uses `better-sqlite3` (native module) and `bcryptjs`. After pulling the update run:
 
 ```bash
 cd backend && npm install   # installs the new 'ejs' dependency
@@ -653,6 +653,7 @@ server {
 
 | Version | Summary |
 |---------|---------|
+| **2.2** | Remove Google SSO; local username/password auth; SQLite database for projects + users |
 | **2.1** | Frontend split — EJS templates + static JS files |
 | **2.0** | Project Settings modal regression fix |
 | **1.9** | Bible fetcher 404/429 handling; SSO/settings bug fixes |

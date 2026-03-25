@@ -1,6 +1,6 @@
-﻿// ── MULTI-USER STATE ──────────────────────────────────────────────────────
-let currentUser  = null;   // { id, name, email, avatar, role, status }
-let ssoEnabled   = false;
+// ── MULTI-USER STATE ──────────────────────────────────────────────────────
+let currentUser  = null;   // { id, username, displayName, role, status }
+let multiUserEnabled = false;
 
 // ── ADMIN PANEL ───────────────────────────────────────────────────────────
 let adminPanelOpen = false;
@@ -35,73 +35,10 @@ async function loadAdminStatus() {
   try {
     const res  = await fetch('/api/admin/status');
     const data = await res.json();
-    renderAdminMultiUserTab(data);
-  } catch (err) { console.error('Admin status failed:', err); }
-}
-
-function renderAdminMultiUserTab(status) {
-  // Credentials indicator
-  const credEl = document.getElementById('mu-cred-status');
-  if (status.credentialsConfigured) {
-    credEl.innerHTML = '<p class="mu-cred-ok">✓ Google OAuth credentials are configured.</p>';
-  } else {
-    credEl.innerHTML = '<p class="mu-cred-warn">⚠ Google OAuth credentials are not set. Add them to your docker-compose.yml and rebuild:<code>GOOGLE_CLIENT_ID=...\nGOOGLE_CLIENT_SECRET=...\nGOOGLE_CALLBACK_URL=https://your-domain/auth/google/callback\nSESSION_SECRET=...</code></p>';
-  }
-
-  const disabledView = document.getElementById('mu-disabled-view');
-  const enabledView  = document.getElementById('mu-enabled-view');
-  const enableBtn    = document.getElementById('mu-enable-btn');
-
-  if (status.ssoEnabled) {
-    disabledView.style.display = 'none';
-    enabledView.style.display  = 'block';
-    const approvalToggle = document.getElementById('mu-require-approval');
-    approvalToggle.checked = status.requireApproval;
-    const adminOnly = document.getElementById('mu-admin-only');
-    if (adminOnly) adminOnly.style.display = status.isAdmin ? 'block' : 'none';
+    // Show Users tab only for admins
     const usersTab = document.getElementById('an-users');
-    if (usersTab) usersTab.style.display = status.isAdmin ? '' : 'none';
-  } else {
-    disabledView.style.display = 'block';
-    enabledView.style.display  = 'none';
-    enableBtn.disabled = !status.credentialsConfigured;
-  }
-}
-
-async function enableSSO() {
-  const btn = document.getElementById('mu-enable-btn');
-  btn.disabled = true;
-  btn.textContent = 'Enabling…';
-  try {
-    const res  = await fetch('/api/admin/enable-sso', { method: 'POST' });
-    const data = await res.json();
-    if (data.error) {
-      alert(data.error);
-      btn.disabled = false;
-      btn.textContent = 'Enable Multi-User SSO';
-      return;
-    }
-    if (data.redirectTo) window.location.href = data.redirectTo;
-  } catch (err) {
-    alert('Failed: ' + err.message);
-    btn.disabled = false;
-    btn.textContent = 'Enable Multi-User SSO';
-  }
-}
-
-async function disableSSO() {
-  if (!confirm('Disable SSO? The app will return to single-user mode. All data is preserved.')) return;
-  const res = await fetch('/api/admin/disable-sso', { method: 'POST' });
-  if ((await res.json()).success) window.location.reload();
-  else alert('Failed to disable SSO.');
-}
-
-async function updateRequireApproval(checked) {
-  await fetch('/api/admin/config', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ requireApproval: checked })
-  });
+    if (usersTab) usersTab.style.display = data.isAdmin ? '' : 'none';
+  } catch (err) { console.error('Admin status failed:', err); }
 }
 
 // ── USER MANAGEMENT ───────────────────────────────────────────────────────
@@ -110,20 +47,17 @@ async function loadUserManagement() {
     const res   = await fetch('/api/admin/users');
     const users = await res.json();
     renderUserLists(users);
-    // Update pending dot
-    const pending = users.filter(u => u.status === 'pending').length;
-    const dot = document.getElementById('user-pending-dot');
-    if (dot) { dot.textContent = pending || ''; dot.style.display = pending ? 'inline' : 'none'; }
   } catch (err) { console.error('User management failed:', err); }
 }
 
 function renderUserLists(users) {
-  renderUserGroup('users-pending-list',   users.filter(u => u.status === 'pending'),
-    [{ label:'Approve', cls:'btn-approve', action:'approve' }, { label:'Deny', cls:'btn-delete', action:'delete' }]);
-  renderUserGroup('users-active-list',    users.filter(u => u.status === 'active'),
-    [{ label:'Suspend', cls:'btn-suspend', action:'suspend', skipAdmin:true }]);
-  renderUserGroup('users-suspended-list', users.filter(u => u.status === 'suspended'),
-    [{ label:'Reactivate', cls:'btn-approve', action:'reactivate' }, { label:'Delete', cls:'btn-delete', action:'delete' }]);
+  renderUserGroup('users-active-list', users.filter(u => u.status === 'active'), [
+    { label: 'Suspend', cls: 'btn-suspend', action: 'suspend', skipAdmin: true }
+  ]);
+  renderUserGroup('users-suspended-list', users.filter(u => u.status === 'suspended'), [
+    { label: 'Reactivate', cls: 'btn-approve',  action: 'reactivate' },
+    { label: 'Delete',     cls: 'btn-delete',    action: 'delete' }
+  ]);
 }
 
 function renderUserGroup(elId, users, actions) {
@@ -132,10 +66,10 @@ function renderUserGroup(elId, users, actions) {
   if (!users.length) { el.innerHTML = '<span class="no-users">None</span>'; return; }
   el.innerHTML = users.map(u => `
     <div class="user-row">
-      <img class="user-row-avatar" src="${u.avatar || ''}" onerror="this.style.display='none'" alt="">
+      <div class="user-row-avatar-placeholder">${_initials(u.displayName || u.username)}</div>
       <div class="user-row-info">
-        <div class="user-row-name">${_esc(u.name)}</div>
-        <div class="user-row-email">${_esc(u.email)}</div>
+        <div class="user-row-name">${_esc(u.displayName || u.username)}</div>
+        <div class="user-row-email">${_esc(u.username)}</div>
       </div>
       <span class="user-row-role ${u.role}">${u.role}</span>
       <div class="user-row-actions">
@@ -147,13 +81,68 @@ function renderUserGroup(elId, users, actions) {
 }
 
 async function _userAction(action, userId) {
-  const map = { approve:'POST', suspend:'POST', reactivate:'POST', delete:'DELETE' };
+  const map = { suspend: 'POST', reactivate: 'POST', delete: 'DELETE' };
   if (action === 'delete' && !confirm('Permanently delete this user?')) return;
   const url    = `/api/admin/users/${userId}` + (action === 'delete' ? '' : `/${action}`);
   const method = map[action] || 'POST';
   const res    = await fetch(url, { method });
   if (res.ok) loadUserManagement();
   else { const e = await res.json(); alert(e.error || 'Action failed'); }
+}
+
+// ── CREATE USER ───────────────────────────────────────────────────────────
+async function _createUser() {
+  const username    = document.getElementById('cu-username').value.trim();
+  const displayName = document.getElementById('cu-displayname').value.trim();
+  const password    = document.getElementById('cu-password').value;
+  const role        = document.getElementById('cu-role').value;
+  const msgEl       = document.getElementById('cu-message');
+  const btn         = document.getElementById('cu-create-btn');
+
+  msgEl.style.display = 'none';
+  if (!username || !password) {
+    msgEl.textContent = 'Username and password are required.';
+    msgEl.style.color = 'var(--red)';
+    msgEl.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Creating…';
+  try {
+    const res  = await fetch('/api/admin/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, displayName, password, role })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      msgEl.textContent = data.error || 'Failed to create user.';
+      msgEl.style.color = 'var(--red)';
+      msgEl.style.display = 'block';
+    } else {
+      msgEl.textContent = `User "${data.displayName || data.username}" created successfully.`;
+      msgEl.style.color = 'var(--accent)';
+      msgEl.style.display = 'block';
+      document.getElementById('cu-username').value    = '';
+      document.getElementById('cu-displayname').value = '';
+      document.getElementById('cu-password').value    = '';
+      document.getElementById('cu-role').value        = 'user';
+      loadUserManagement();
+    }
+  } catch (err) {
+    msgEl.textContent = 'Network error: ' + err.message;
+    msgEl.style.color = 'var(--red)';
+    msgEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Create';
+  }
+}
+
+function _initials(name) {
+  if (!name) return '?';
+  return name.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
 }
 
 function _esc(str) {
@@ -184,24 +173,22 @@ async function refreshShareModal() {
 }
 
 function renderShareModal(shareData) {
-  // Owner row
   document.getElementById('share-owner-name').textContent =
     shareData.ownerName || shareData.ownerId || 'You';
   const xBtn = document.getElementById('share-transfer-btn');
   xBtn.style.display = (!currentUser || shareData.ownerId === currentUser.id) ? '' : 'none';
 
-  // Shared-with list
   const listEl = document.getElementById('share-users-list');
-  const sw = shareData.sharedWith || [];
+  const sw     = shareData.sharedWith || [];
   if (!sw.length) {
     listEl.innerHTML = '<span class="no-users" style="padding:8px 0;display:block">Not shared with anyone yet</span>';
   } else {
     listEl.innerHTML = sw.map(e => `
       <div class="share-user-row">
-        <img class="user-row-avatar" src="${_esc(e.userAvatar||'')}" onerror="this.style.display='none'" alt="">
+        <div class="user-row-avatar-placeholder">${_initials(e.userName)}</div>
         <div class="user-row-info">
-          <div class="user-row-name">${_esc(e.userName||e.userId)}</div>
-          <div class="user-row-email">${_esc(e.userEmail||'')}</div>
+          <div class="user-row-name">${_esc(e.userName || e.userId)}</div>
+          <div class="user-row-email">${_esc(e.userEmail || '')}</div>
         </div>
         <select class="share-role-sel" onchange="_shareUpdateRole('${e.userId}',this.value)">
           <option value="editor" ${e.role==='editor'?'selected':''}>Editor</option>
@@ -211,13 +198,12 @@ function renderShareModal(shareData) {
       </div>`).join('');
   }
 
-  // Add-user select
-  const sel = document.getElementById('share-user-select');
+  const sel       = document.getElementById('share-user-select');
   const sharedIds = new Set(sw.map(s => s.userId));
   const available = _allUsers.filter(u =>
     u.id !== shareData.ownerId && !sharedIds.has(u.id) && u.status === 'active');
   sel.innerHTML = '<option value="">— Select a user —</option>' +
-    available.map(u => `<option value="${u.id}">${_esc(u.name)} (${_esc(u.email)})</option>`).join('');
+    available.map(u => `<option value="${u.id}">${_esc(u.displayName || u.username)}</option>`).join('');
 }
 
 async function _shareAdd() {
@@ -229,11 +215,11 @@ async function _shareAdd() {
     body: JSON.stringify({ userId, role })
   });
   await refreshShareModal();
-  await loadProjectList(); // refresh badges
+  await loadProjectList();
 }
 
 async function _shareRemove(userId) {
-  if (!confirm('Remove this user\'s access?')) return;
+  if (!confirm("Remove this user's access?")) return;
   await fetch(`/api/projects/${currentProject.id}/share/${userId}`, { method: 'DELETE' });
   await refreshShareModal();
   await loadProjectList();
@@ -247,14 +233,14 @@ async function _shareUpdateRole(userId, role) {
 }
 
 async function _shareTransfer() {
-  const active = _allUsers.filter(u => u.status === 'active' && u.id !== (currentUser?.id));
+  const active = _allUsers.filter(u => u.status === 'active' && u.id !== currentUser?.id);
   if (!active.length) { alert('No other active users to transfer to.'); return; }
-  const emails = active.map(u => `${u.name} — ${u.email}`).join('\n');
-  const chosen = prompt(`Enter exact email address of new owner:\n\n${emails}`);
+  const names  = active.map(u => `${u.displayName || u.username} (${u.username})`).join('\n');
+  const chosen = prompt(`Enter exact username of new owner:\n\n${names}`);
   if (!chosen) return;
-  const target = active.find(u => u.email === chosen.trim());
-  if (!target) { alert('User not found. Please enter an exact email address.'); return; }
-  if (!confirm(`Transfer ownership of "${currentProject.title}" to ${target.name}?`)) return;
+  const target = active.find(u => u.username === chosen.trim());
+  if (!target) { alert('User not found. Please enter an exact username.'); return; }
+  if (!confirm(`Transfer ownership of "${currentProject.title}" to ${target.displayName || target.username}?`)) return;
   const res = await fetch(`/api/projects/${currentProject.id}/share/transfer`, {
     method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify({ toUserId: target.id })
@@ -265,7 +251,7 @@ async function _shareTransfer() {
 
 // ── SOCKET.IO REAL-TIME COLLABORATION ─────────────────────────────────────
 let _socket       = null;
-let _currentRoom  = null;   // 'projectId:docId'
+let _currentRoom  = null;
 let _broadcastTimer = null;
 
 function initSocket() {
@@ -273,18 +259,15 @@ function initSocket() {
   _socket = io({ transports: ['websocket', 'polling'] });
   _socket.on('connect',    () => {});
   _socket.on('disconnect', () => renderPresence({}));
-
   _socket.on('doc-updated', ({ projectId, docId, content, userId }) => {
     if (!currentProject || projectId !== currentProject.id) return;
     if (docId !== currentDocId) return;
-    if (userId === currentUser?.id) return;   // our own echo
-    // Apply remote content only if user isn't actively typing
+    if (userId === currentUser?.id) return;
     if (document.activeElement?.id !== 'editor') {
       const ed = document.getElementById('editor');
       if (ed) { ed.innerHTML = content; updateStats(); }
     }
   });
-
   _socket.on('presence-update', ({ users }) => renderPresence(users));
 }
 
@@ -310,8 +293,8 @@ function renderPresence(users) {
   const others  = Object.values(users).filter(u => u.userId !== currentUser?.id);
   if (!others.length) { bar.style.display = 'none'; return; }
   bar.style.display = 'flex';
-  avatars.innerHTML = others.slice(0,5).map(u =>
-    `<img class="presence-avatar" src="${_esc(u.avatar||'')}" title="${_esc(u.name)}" onerror="this.style.display='none'">`
+  avatars.innerHTML = others.slice(0, 5).map(u =>
+    `<div class="presence-avatar-initial" title="${_esc(u.name)}">${_initials(u.name)}</div>`
   ).join('');
   text.textContent = others.length === 1
     ? `${others[0].name} is also editing`
@@ -326,24 +309,25 @@ selectDoc = async function(docId) {
   if (_socket && currentProject && currentDocId) _joinDocRoom(currentProject.id, currentDocId);
 };
 
-// Hook showHome to leave room
+// Hook showHome to leave room and hide share button
 const _origShowHome = showHome;
 showHome = async function() {
   if (_socket) _leaveDocRoom();
   await _origShowHome();
-  // Show/hide share button
   document.getElementById('btn-share').style.display = 'none';
 };
 
-// Hook openProject to show Share button
+// Hook openProject to show Share button in multi-user mode
 const _origOpenProject = openProject;
 openProject = async function(id) {
   await _origOpenProject(id);
-  const shareBtn = document.getElementById('btn-share');
-  if (ssoEnabled && shareBtn) shareBtn.style.display = '';
+  if (multiUserEnabled) {
+    const shareBtn = document.getElementById('btn-share');
+    if (shareBtn) shareBtn.style.display = '';
+  }
 };
 
-// Broadcast content changes on debounce (faster than save timer)
+// Broadcast content changes on debounce
 document.getElementById('editor').addEventListener('input', () => {
   if (!_socket || !currentProject || !currentDocId) return;
   clearTimeout(_broadcastTimer);
@@ -356,63 +340,85 @@ document.getElementById('editor').addEventListener('input', () => {
   }, 400);
 });
 
-// ── UPDATED initAuth ──────────────────────────────────────────────────────
-// (replaces the one in the main script block)
+// ── LOGIN FORM ────────────────────────────────────────────────────────────
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl    = document.getElementById('auth-error-msg');
+  const btn      = document.getElementById('login-btn');
+  errEl.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = 'Signing in…';
+  try {
+    const res  = await fetch('/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      errEl.textContent   = data.error || 'Sign-in failed.';
+      errEl.style.display = 'block';
+      btn.disabled    = false;
+      btn.textContent = 'Sign In';
+      return;
+    }
+    window.location.reload();
+  } catch (err) {
+    errEl.textContent   = 'Network error: ' + err.message;
+    errEl.style.display = 'block';
+    btn.disabled    = false;
+    btn.textContent = 'Sign In';
+  }
+});
+
+// ── AUTH INIT ─────────────────────────────────────────────────────────────
 async function _initAuthMultiUser() {
   try {
     const res  = await fetch('/api/me');
     const data = await res.json();
 
     if (!data.authEnabled) {
-      // Single-user mode: always show admin panel button (for SSO setup)
-      ssoEnabled = false;
-      document.getElementById('btn-admin-panel').style.display = '';
+      // Single-user mode — hide user-info and auth controls, go straight to app
+      multiUserEnabled = false;
+      document.getElementById('btn-admin-panel').style.display = 'none';
+      document.getElementById('btn-share').style.display       = 'none';
+      document.getElementById('user-info').style.display       = 'none';
       showHome();
       return;
     }
 
-    ssoEnabled = true;
+    multiUserEnabled = true;
 
     if (!data.user) {
+      // Not logged in — show login screen
       document.getElementById('auth-overlay').style.display = 'flex';
-      if (location.search.includes('auth=failed')) {
-        const el = document.getElementById('auth-error-msg');
-        el.textContent = 'Sign-in failed or access denied. Please try again.';
-        el.style.display = 'block';
-      }
-      return;
-    }
-
-    if (data.user.status === 'pending') {
-      document.getElementById('pending-overlay').style.display = 'flex';
       return;
     }
 
     if (data.user.status === 'suspended') {
       document.getElementById('auth-overlay').style.display = 'flex';
       const el = document.getElementById('auth-error-msg');
-      el.textContent = 'Your account has been suspended. Contact the administrator.';
+      el.textContent   = 'Your account has been suspended. Contact the administrator.';
       el.style.display = 'block';
+      // Disable login form inputs
+      document.getElementById('login-form').style.display = 'none';
       return;
     }
 
-    // Active user
+    // Active user — set up toolbar
     currentUser = data.user;
 
-    // Toolbar user info
     const ui = document.getElementById('user-info');
     ui.style.display = 'flex';
-    if (data.user.avatar) {
-      const img = document.getElementById('user-avatar');
-      img.src = data.user.avatar;
-      img.onerror = () => { img.style.display = 'none'; };
-    }
-    document.getElementById('user-name').textContent = data.user.name || data.user.email || '';
+    document.getElementById('user-name').textContent = data.user.displayName || data.user.username;
 
-    // Admin panel button: always visible in multi-user mode (contents adapt per role)
-    document.getElementById('btn-admin-panel').style.display = '';
+    // Admin button: only admins see it
+    document.getElementById('btn-admin-panel').style.display =
+      data.user.role === 'admin' ? '' : 'none';
 
-    // Init real-time
+    // Init real-time collaboration
     initSocket();
 
     showHome();
@@ -423,24 +429,20 @@ async function _initAuthMultiUser() {
   }
 }
 
-// ── WIRE UP ALL NEW BUTTONS ───────────────────────────────────────────────
+// ── WIRE UP BUTTONS ───────────────────────────────────────────────────────
 document.getElementById('btn-admin-panel').addEventListener('click', () => openAdminPanel());
 document.getElementById('admin-close').addEventListener('click', closeAdminPanel);
 document.getElementById('admin-overlay').addEventListener('click', e => {
   if (e.target === document.getElementById('admin-overlay')) closeAdminPanel();
 });
 
-// Admin nav tabs
 document.getElementById('admin-nav').addEventListener('click', e => {
   const item = e.target.closest('.an-item');
   if (item && item.dataset.asection) switchAdminTab(item.dataset.asection);
 });
 
-document.getElementById('mu-enable-btn').addEventListener('click', enableSSO);
-document.getElementById('mu-disable-btn').addEventListener('click', disableSSO);
-document.getElementById('mu-require-approval').addEventListener('change', e => updateRequireApproval(e.target.checked));
+document.getElementById('cu-create-btn').addEventListener('click', _createUser);
 
-// Share modal
 document.getElementById('btn-share').addEventListener('click', openShareModal);
 document.getElementById('share-close').addEventListener('click', () => {
   const ov = document.getElementById('share-overlay');
@@ -457,7 +459,9 @@ document.getElementById('share-overlay').addEventListener('click', e => {
 document.getElementById('share-add-btn').addEventListener('click', _shareAdd);
 document.getElementById('share-transfer-btn').addEventListener('click', _shareTransfer);
 
-// ── RE-RUN INIT ────────────────────────────────────────────────────────────
-// This replaces the initAuth() call in the main script block.
-// We cancel the previous call by overwriting initAuth and re-running.
+document.getElementById('btn-logout').addEventListener('click', () => {
+  location.href = '/auth/logout';
+});
+
+// ── RUN ───────────────────────────────────────────────────────────────────
 _initAuthMultiUser();

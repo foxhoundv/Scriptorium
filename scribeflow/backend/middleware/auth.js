@@ -1,38 +1,33 @@
-const { getConfig } = require('../config');
-const { getUser }   = require('../users');
+const { getUser } = require('../users');
+
+const AUTH_ENABLED = process.env.AUTH_ENABLED === 'true';
 
 /**
  * Auth guard middleware.
  *
- * Single-user mode (ssoEnabled=false, default):
+ * Single-user mode (AUTH_ENABLED != 'true'):
  *   req.userId = null, req.userRole = 'admin' — full access, no login required.
  *
- * Multi-user mode (ssoEnabled=true):
- *   Requires an active Google SSO session.
- *   - pending  → 403 { code: 'pending'   } — awaiting admin approval
- *   - suspended→ 403 { code: 'suspended' } — account suspended
- *   - active   → sets req.userId + req.userRole, proceeds
+ * Multi-user mode (AUTH_ENABLED = 'true'):
+ *   Requires a valid session (set by POST /auth/login).
+ *   Suspended accounts receive 403.
  */
-module.exports = async function requireAuth(req, res, next) {
-  const config = await getConfig();
-
-  if (!config.ssoEnabled) {
+module.exports = function requireAuth(req, res, next) {
+  if (!AUTH_ENABLED) {
     req.userId   = null;
     req.userRole = 'admin';
     return next();
   }
 
-  if (!req.isAuthenticated || !req.isAuthenticated()) {
+  const userId = req.session?.userId;
+  if (!userId) {
     return res.status(401).json({ error: 'Authentication required', authEnabled: true });
   }
 
-  const user = await getUser(req.user.id);
-
+  const user = getUser(userId);
   if (!user) {
-    return res.status(403).json({ error: 'User not registered', code: 'not_found' });
-  }
-  if (user.status === 'pending') {
-    return res.status(403).json({ error: 'Awaiting admin approval', code: 'pending' });
+    req.session.destroy(() => {});
+    return res.status(401).json({ error: 'Session invalid', authEnabled: true });
   }
   if (user.status === 'suspended') {
     return res.status(403).json({ error: 'Account suspended', code: 'suspended' });

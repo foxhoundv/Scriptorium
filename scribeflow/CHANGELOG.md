@@ -4,6 +4,43 @@ All notable changes are documented here. Version increments by tenths.
 
 ---
 
+## Version 2.2
+
+### Rewrite — Auth, Database, and Multi-User
+
+**Remove Google SSO; replace with local username/password accounts**
+- Google OAuth 2.0 and Passport.js removed entirely. No external auth dependency.
+- Multi-user mode is now enabled by uncommenting `AUTH_ENABLED=true` in `docker-compose.yml` and rebuilding — no runtime toggle required.
+- Login is a simple username/password form served by ScribeFlow itself.
+- On first start with `AUTH_ENABLED=true`, an admin account is created automatically from the `ADMIN_USERNAME` / `ADMIN_PASSWORD` environment variables (default: `admin` / `admin` — change immediately).
+
+**SQLite database via `better-sqlite3`**
+- All project data previously stored as individual JSON files in `data/projects/` is now stored in a single SQLite database (`data/scribeflow.db`).
+- User accounts are also stored in the same SQLite database (replacing per-user JSON files in `data/users/`).
+- On first start, existing JSON project files are automatically migrated into the database; legacy files are left in place as backups.
+- Synchronous SQLite API eliminates all async file-IO in project routes.
+
+**Admin panel — User Management**
+- Admins create user accounts directly in App Settings → Users.
+- No self-registration flow; all accounts are admin-created.
+- Actions: Create, Suspend, Reactivate, Delete.
+- Password reset available via `PUT /api/admin/users/:id/password`.
+
+**Frontend**
+- Login overlay replaced with a clean username/password form (no Google branding).
+- Presence bar uses initials instead of Google profile photos.
+- Admin button is hidden in single-user mode; visible to admins only in multi-user mode.
+- `multiuser.js` cleaned of all SSO-specific code; 230 lines removed.
+
+**Backend packages removed**: `passport`, `passport-google-oauth20`
+**Backend packages added**: `better-sqlite3`, `bcryptjs`
+**Dockerfile**: added `python3 make g++` (Alpine build tools for native SQLite module)
+
+**Settings modal fix**
+- Root cause identified: the `#admin-overlay` added in v1.7 used `display:none` but `opacity:0` without a fallback, causing it to intercept pointer events in certain browser states even when visually hidden. Fixed by ensuring all overlay show/hide paths use only `display` toggling consistently.
+
+---
+
 ## Version 2.1
 
 ### Refactor

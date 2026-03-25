@@ -1,43 +1,58 @@
-const fs   = require('fs-extra');
-const path = require('path');
+const bcrypt     = require('bcryptjs');
+const { v4: uuidv4 } = require('uuid');
+const { getDb }  = require('./db');
 
-function usersDir() {
-  return path.join(process.env.DATA_DIR || path.join(__dirname, 'data'), 'users');
+// ── Queries ────────────────────────────────────────────────────────────────
+function getUser(id) {
+  return getDb().prepare('SELECT * FROM users WHERE id = ?').get(id) || null;
 }
 
-async function getUser(userId) {
-  try {
-    return await fs.readJson(path.join(usersDir(), `${userId}.json`));
-  } catch {
-    return null;
-  }
+function getUserByUsername(username) {
+  return getDb().prepare('SELECT * FROM users WHERE username = ? COLLATE NOCASE').get(username) || null;
 }
 
-async function saveUser(user) {
-  await fs.ensureDir(usersDir());
-  await fs.writeJson(path.join(usersDir(), `${user.id}.json`), user, { spaces: 2 });
-  return user;
+function getAllUsers() {
+  return getDb().prepare('SELECT * FROM users ORDER BY created_at ASC').all();
 }
 
-async function getAllUsers() {
-  try {
-    await fs.ensureDir(usersDir());
-    const files = (await fs.readdir(usersDir())).filter(f => f.endsWith('.json'));
-    const users = [];
-    for (const file of files) {
-      try { users.push(await fs.readJson(path.join(usersDir(), file))); } catch {}
-    }
-    return users.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-  } catch { return []; }
+function adminCount() {
+  return getDb().prepare("SELECT COUNT(*) as n FROM users WHERE role = 'admin'").get().n;
 }
 
-async function getUserByEmail(email) {
-  const all = await getAllUsers();
-  return all.find(u => u.email === email) || null;
+// ── Mutations ──────────────────────────────────────────────────────────────
+async function createUser({ username, password, displayName, role = 'user' }) {
+  const id   = uuidv4();
+  const hash = await bcrypt.hash(password, 12);
+  const now  = new Date().toISOString();
+  getDb().prepare(`
+    INSERT INTO users (id, username, password_hash, display_name, role, status, created_at)
+    VALUES (?, ?, ?, ?, ?, 'active', ?)
+  `).run(id, username.trim(), hash, (displayName || username).trim(), role, now);
+  return getUser(id);
 }
 
-async function deleteUser(userId) {
-  await fs.remove(path.join(usersDir(), `${userId}.json`));
+async function verifyPassword(user, password) {
+  return bcrypt.compare(password, user.password_hash);
 }
 
-module.exports = { getUser, saveUser, getAllUsers, getUserByEmail, deleteUser };
+async function setPassword(userId, password) {
+  const hash = await bcrypt.hash(password, 12);
+  getDb().prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, userId);
+}
+
+function updateUser(id, fields) {
+  const allowed = { display_name: true, role: true, status: true, last_seen_at: true };
+  const entries = Object.entries(fields).filter(([k]) => allowed[k]);
+  if (!entries.length) return;
+  const sql = `UPDATE users SET ${entries.map(([k]) => `${k} = ?`).join(', ')} WHERE id = ?`;
+  getDb().prepare(sql).run(...entries.map(([, v]) => v), id);
+}
+
+function deleteUser(id) {
+  getDb().prepare('DELETE FROM users WHERE id = ?').run(id);
+}
+
+module.exports = {
+  getUser, getUserByUsername, getAllUsers, adminCount,
+  createUser, verifyPassword, setPassword, updateUser, deleteUser
+};

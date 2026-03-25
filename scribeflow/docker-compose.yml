@@ -6,26 +6,28 @@ version: '3.8'
 #   scribeflow     — the main app (always running)
 #   bible-fetcher  — one-shot Bible downloader (run manually after build)
 #
-# QUICK START:
+# QUICK START (single-user, no login):
 #   docker compose up -d                      # start ScribeFlow
 #   docker compose run --rm bible-fetcher     # fetch Bible data (once)
 #
-# The fetcher downloads ~25 MB of public-domain translations into a
-# persistent volume (bible_data). ScribeFlow reads from that same volume
-# so Bible data survives image rebuilds without re-fetching.
-# The fetcher is safe to re-run — present translations are skipped.
+# ENABLE MULTI-USER MODE:
+#   Uncomment the AUTH_ENABLED, ADMIN_USERNAME, ADMIN_PASSWORD, and
+#   SESSION_SECRET lines below, then rebuild and restart:
+#     docker compose down
+#     docker compose build --no-cache
+#     docker compose up -d
+#
+#   On first start ScribeFlow creates the admin account automatically.
+#   Log in with ADMIN_USERNAME / ADMIN_PASSWORD and change the password
+#   immediately via the App Settings → Users panel.
 #
 # UPDATE WORKFLOW:
 #   docker compose down
 #   docker compose build --no-cache
 #   docker compose up -d
-#   # Bible data already in bible_data volume — no need to re-fetch.
+#   # Existing database and Bible data are preserved in named volumes.
 #
-# FORCE RE-FETCH (e.g. to add a translation):
-#   docker volume rm scribeflow_bible_data
-#   docker compose run --rm bible-fetcher
-#
-# BACKUP projects:
+# BACKUP:
 #   docker run --rm \
 #     -v scribeflow_scribeflow_data:/data \
 #     -v $(pwd):/backup \
@@ -43,18 +45,17 @@ services:
       - "${PORT:-3051}:3051"
     volumes:
       - scribeflow_data:/data
-      - bible_data:/app/data/bibles   # reads Bible JSON written by fetcher
+      - bible_data:/app/data/bibles
     environment:
       - PORT=3051
       - DATA_DIR=/data
       - NODE_ENV=production
-      # ── Google SSO (optional — leave commented out for single-user mode) ──
-      # AUTH_ENABLED=true
-      # GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
-      # GOOGLE_CLIENT_SECRET=your-client-secret
-      # GOOGLE_CALLBACK_URL=https://your-domain.com/auth/google/callback
-      # SESSION_SECRET=change-this-to-a-long-random-string
-      # TRUST_PROXY=true  # set if behind a reverse proxy (Nginx, Traefik, etc.)
+      # ── Multi-user mode (comment out for single-user / no login) ──────
+      # - AUTH_ENABLED=true
+      # - ADMIN_USERNAME=admin
+      # - ADMIN_PASSWORD=change-this-password
+      # - SESSION_SECRET=change-this-to-a-long-random-string
+      # - COOKIE_SECURE=true   # uncomment if serving over HTTPS
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3051/api/health"]
       interval: 30s
@@ -64,15 +65,13 @@ services:
 
   # ── Bible data fetcher ────────────────────────────────────────────────
   # Run once after first build:  docker compose run --rm bible-fetcher
-  # Uses the same image — no extra build step.
-  # Writes JSON files into bible_data volume, which scribeflow also mounts.
   bible-fetcher:
     build: .
     container_name: scribeflow-bible-fetcher
     profiles:
       - tools
     volumes:
-      - bible_data:/app/data/bibles   # writes here; scribeflow reads here
+      - bible_data:/app/data/bibles
     environment:
       - NODE_ENV=production
     command: ["node", "scripts/fetch-bibles.js"]
@@ -91,5 +90,3 @@ volumes:
     driver: local
     # Holds the Bible JSON files (~25 MB).
     # Shared between scribeflow (read) and bible-fetcher (write).
-    # Persists across image rebuilds — only removed with:
-    #   docker compose down -v   or   docker volume rm scribeflow_bible_data

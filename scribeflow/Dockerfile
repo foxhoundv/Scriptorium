@@ -3,8 +3,10 @@ FROM node:20-alpine
 LABEL maintainer="ScribeFlow"
 LABEL description="Self-hosted writing application"
 
-# Create app directory
 WORKDIR /app
+
+# Build tools required to compile better-sqlite3 native module
+RUN apk add --no-cache python3 make g++
 
 # Install dependencies (cached layer — only reruns if package.json changes)
 COPY backend/package*.json ./
@@ -15,10 +17,9 @@ COPY backend/ ./
 COPY frontend/ ../frontend/
 
 # Ensure the Bible data directory exists so the route doesn't error on startup
-# The actual JSON files are populated later by running the bible-fetcher service
 RUN mkdir -p /app/data/bibles
 
-# Declare /data as a volume (project files — separate from image)
+# Declare /data as a volume (database + project files — separate from image)
 VOLUME ["/data"]
 
 EXPOSE 3051
