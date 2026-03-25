@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM node:20-slim
 
 LABEL maintainer="ScribeFlow"
 LABEL description="Self-hosted writing application"
@@ -6,7 +6,7 @@ LABEL description="Self-hosted writing application"
 WORKDIR /app
 
 # Build tools required to compile better-sqlite3 native module
-RUN apk add --no-cache python3 make g++
+RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ curl && rm -rf /var/lib/apt/lists/*
 
 # Install dependencies (cached layer — only reruns if package.json changes)
 COPY backend/package*.json ./
@@ -25,7 +25,7 @@ VOLUME ["/data"]
 EXPOSE 3051
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-  CMD wget -qO- http://localhost:3051/api/health || exit 1
+  CMD curl -sf http://localhost:3051/api/health || exit 1
 
 ENV PORT=3051
 ENV DATA_DIR=/data
