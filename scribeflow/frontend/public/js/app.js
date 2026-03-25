@@ -2380,6 +2380,7 @@ function initScriptureResize() {
 // ── INIT ──
 initSettingsListeners();
 document.getElementById('tb-version').textContent = 'v' + APP_VERSION;
+document.getElementById('home-version-num').textContent = APP_VERSION;
 
 // initAuth() stub — replaced by _initAuthMultiUser() in the second script block below.
 // Defined here so any early references don't throw; the real call happens after DOM loads.
