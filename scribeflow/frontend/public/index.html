@@ -526,7 +526,7 @@
     display: none; align-items: center; padding: 0 16px; gap: 18px;
     flex-shrink: 0; overflow: hidden;
   }
-  #status-bar.visible { display: flex; }
+  #status-bar.project-open { display: flex; }
   body.distraction-free #status-bar { display: none !important; }
   .sb-item {
     display: flex; align-items: center; gap: 7px;
@@ -553,6 +553,66 @@
   }
   #sb-deadline-chip.urgent { background: rgba(192,57,43,0.12); color: #c0392b; border-color: rgba(192,57,43,0.25); }
   #sb-deadline-chip.done { background: rgba(74,124,89,0.12); color: var(--green); border-color: rgba(74,124,89,0.25); }
+
+
+  /* ── DOCUMENT STYLE TAB ── */
+  .style-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .style-card {
+    border: 2px solid var(--border); border-radius: 10px; padding: 14px 12px;
+    cursor: pointer; transition: all 0.15s; text-align: center; position: relative;
+    background: var(--bg2);
+  }
+  .style-card:hover:not(.locked) { border-color: var(--accent); background: var(--bg3); }
+  .style-card.selected { border-color: var(--accent); background: rgba(181,84,26,0.07); }
+  .style-card.locked { cursor: not-allowed; opacity: 0.55; }
+  .style-card .sc-icon { font-size: 28px; margin-bottom: 8px; }
+  .style-card .sc-name { font-family: 'Lora', serif; font-size: 13px; font-weight: 600; color: var(--text); }
+  .style-card .sc-desc { font-family: 'Crimson Pro', serif; font-size: 11px; color: var(--text3); margin-top: 3px; line-height: 1.4; }
+  .style-card .sc-badge {
+    position: absolute; top: 8px; right: 8px; font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; padding: 2px 5px; border-radius: 4px; background: var(--accent); color: #fff;
+  }
+  .style-locked-notice {
+    display: none; background: rgba(181,84,26,0.08); border: 1px solid rgba(181,84,26,0.2);
+    border-radius: 8px; padding: 10px 14px; font-family: 'Crimson Pro', serif; font-style: italic;
+    font-size: 13px; color: var(--text3); margin-top: 4px;
+  }
+  .style-locked-notice.show { display: block; }
+
+  /* ── CHARACTERS / PLACES QUICK-ADD TAB ── */
+  .qalist-wrap { display: flex; flex-direction: column; gap: 0; }
+  .qalist-row {
+    display: flex; align-items: center; gap: 8px;
+    border-bottom: 1px solid var(--border); padding: 6px 0;
+  }
+  .qalist-row:first-child { border-top: 1px solid var(--border); }
+  .qalist-input {
+    flex: 1; background: transparent; border: none; outline: none;
+    font-family: 'Lora', serif; font-size: 14px; color: var(--text);
+    padding: 4px 6px; border-radius: 4px; transition: background 0.1s;
+  }
+  .qalist-input:focus { background: var(--bg2); }
+  .qalist-input::placeholder { color: var(--text3); font-style: italic; }
+  .qalist-del {
+    background: none; border: none; cursor: pointer; color: var(--text3);
+    padding: 4px 6px; border-radius: 4px; font-size: 14px; line-height: 1;
+    transition: color 0.15s, background 0.15s; flex-shrink: 0; opacity: 0;
+    transition: opacity 0.15s, color 0.15s;
+  }
+  .qalist-row:hover .qalist-del,
+  .qalist-del.show { opacity: 1; }
+  .qalist-del:hover { color: #e74c3c; background: rgba(231,76,60,0.08); }
+  .qa-summary {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text3);
+    margin-top: 10px; padding: 8px 0;
+  }
+  .qa-create-btn {
+    margin-top: 14px; padding: 9px 18px; background: var(--accent); color: #fff;
+    border: none; border-radius: 6px; font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; cursor: pointer; transition: background 0.15s;
+  }
+  .qa-create-btn:hover { background: var(--accent2); }
+  .qa-create-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
   /* SCROLLBAR GLOBAL */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -827,6 +887,9 @@
       <div id="settings-nav">
         <div class="sn-item active" data-section="general"><span class="sn-icon">📝</span> General</div>
         <div class="sn-item" data-section="goals"><span class="sn-icon">🎯</span> Goals</div>
+        <div class="sn-item" data-section="style"><span class="sn-icon">🎨</span> Doc Style</div>
+        <div class="sn-item" data-section="characters"><span class="sn-icon">👤</span> Characters</div>
+        <div class="sn-item" data-section="places"><span class="sn-icon">📍</span> Places</div>
         <div class="sn-item" data-section="hotlinks"><span class="sn-icon">🔗</span> Hot-Links</div>
       </div>
       <div id="settings-content">
@@ -889,6 +952,35 @@
             <input type="date" class="settings-input" id="goal-deadline" />
             <div class="field-hint" id="goal-deadline-hint"></div>
           </div>
+        </div>
+
+
+        <!-- DOCUMENT STYLE SECTION -->
+        <div class="settings-section" id="section-style">
+          <h3>Document Style</h3>
+          <p class="section-desc">Choose a writing template for this project. This sets default folder structure, compile settings, and document layout. <strong>Cannot be changed after the project is created.</strong></p>
+          <div class="style-grid" id="style-grid"></div>
+          <div class="style-locked-notice" id="style-locked-notice">
+            🔒 The document style was set when this project was created and cannot be changed. Create a new project to use a different style.
+          </div>
+        </div>
+
+        <!-- CHARACTERS SECTION -->
+        <div class="settings-section" id="section-characters">
+          <h3>Characters</h3>
+          <p class="section-desc">Quickly add character pages to your project's Binder. Each name you enter will become a dedicated document in the <em>Characters</em> folder, ready for notes, backstory, and descriptions. Leave a field blank to skip it.</p>
+          <div class="qalist-wrap" id="char-list"></div>
+          <div class="qa-summary" id="char-summary"></div>
+          <button class="qa-create-btn" id="char-create-btn" disabled>Create Character Pages</button>
+        </div>
+
+        <!-- PLACES SECTION -->
+        <div class="settings-section" id="section-places">
+          <h3>Places</h3>
+          <p class="section-desc">Quickly add location pages to your project's Binder. Each name you enter will become a dedicated document in the <em>Places</em> folder, ready for descriptions, maps, and lore. Leave a field blank to skip it.</p>
+          <div class="qalist-wrap" id="place-list"></div>
+          <div class="qa-summary" id="place-summary"></div>
+          <button class="qa-create-btn" id="place-create-btn" disabled>Create Place Pages</button>
         </div>
 
         <!-- HOT-LINKS SECTION -->
@@ -995,7 +1087,7 @@ async function showHome() {
   hs.style.pointerEvents = 'all';
   currentProject = null;
   currentDocId = null;
-  document.getElementById('status-bar').classList.remove('visible');
+  document.getElementById('status-bar').classList.remove('project-open');
   // Always re-fetch from server so any projects added/restored on disk appear
   await loadProjectList();
 }
@@ -1075,8 +1167,9 @@ document.getElementById('new-project-btn').addEventListener('click', async () =>
   const res = await fetch(`${API}/api/projects`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({title}) });
   const p = await res.json();
   await openProject(p.id);
-  // Open settings on the General tab so the user can fill in project details
-  openSettings._pendingTab = 'general';
+  // Open settings on the Doc Style tab first so user picks a template,
+  // then they can fill in General info before saving
+  openSettings._pendingTab = 'style';
   openSettings();
 });
 document.getElementById('new-project-title').addEventListener('keydown', e => { if (e.key==='Enter') document.getElementById('new-project-btn').click(); });
@@ -1957,6 +2050,9 @@ function openSettings() {
   updateGoalProgress();
   renderHlPagesList();
   populateHlDocPicker();
+  renderStyleGrid();
+  initQuickAddList('char-list',  'char-summary',  'char-create-btn',  'Character');
+  initQuickAddList('place-list', 'place-summary', 'place-create-btn', 'Place');
 
   // Default to General tab on open (unless a specific tab was requested)
   openSettings._pendingTab = openSettings._pendingTab || 'general';
@@ -2037,6 +2133,11 @@ async function saveSettings() {
   if (!currentProject) return;
   const s = currentProject.settings || {};
   const hlToggle = document.getElementById('hl-enabled-toggle');
+  // Only set docStyle once (on first save after project creation)
+  const selectedStyleEl = document.querySelector('#style-grid .style-card.selected');
+  const chosenStyle = selectedStyleEl ? selectedStyleEl.dataset.styleId : (s.docStyle || null);
+  const isNewStyle = !s.docStyle && chosenStyle;
+
   currentProject.settings = {
     ...s,
     finalWordCount: parseInt(document.getElementById('goal-final-wc').value) || 0,
@@ -2044,7 +2145,11 @@ async function saveSettings() {
     deadline: document.getElementById('goal-deadline').value || '',
     author: document.getElementById('settings-author-input').value.trim(),
     hlEnabled: hlToggle ? hlToggle.checked : true,
+    docStyle: chosenStyle,
   };
+
+  // Apply binder structure if this is the first time a style is set
+  if (isNewStyle) applyDocStyleBinder(chosenStyle);
   currentProject.title = document.getElementById('settings-title-input').value.trim() || currentProject.title;
   currentProject.description = document.getElementById('settings-desc-input').value.trim();
 
@@ -2496,15 +2601,24 @@ saveCurrentDoc = async function() {
 // ── STATUS BAR ──────────────────────────────────────────────────────────
 function updateStatusBar() {
   const bar = document.getElementById('status-bar');
-  if (!currentProject) { bar.classList.remove('visible'); return; }
+  if (!currentProject) { bar.classList.remove('project-open'); return; }
+  bar.classList.add('project-open');
 
   const s = currentProject.settings || {};
   const finalGoal = parseInt(s.finalWordCount) || 0;
   const dailyGoal = parseInt(s.dailyWordGoal) || 0;
 
-  // Only show if at least one goal is set
-  if (!finalGoal && !dailyGoal) { bar.classList.remove('visible'); return; }
-  bar.classList.add('visible');
+  // Show placeholder when no goals set
+  if (!finalGoal && !dailyGoal) {
+    document.getElementById('sb-daily-pct').textContent = '—';
+    document.getElementById('sb-daily-wc').textContent = 'no daily goal';
+    document.getElementById('sb-daily-fill').style.width = '0%';
+    document.getElementById('sb-final-pct').textContent = '—';
+    document.getElementById('sb-final-wc').textContent = 'no final goal';
+    document.getElementById('sb-final-fill').style.width = '0%';
+    document.getElementById('sb-deadline-chip').style.display = 'none';
+    return;
+  }
 
   const totalWc = Object.values(currentProject.documents)
     .reduce((sum, d) => sum + (d.wordCount || 0), 0);
@@ -2568,6 +2682,249 @@ function updateStatusBar() {
   } else {
     chip.style.display = 'none';
   }
+}
+
+
+// ── DOCUMENT STYLES ────────────────────────────────────────────────────
+const DOC_STYLES = [
+  {
+    id: 'novel',
+    name: 'Novel',
+    icon: '📖',
+    desc: 'Manuscript, Research, Characters, Places folders',
+    folders: ['Manuscript', 'Research', 'Characters', 'Places', 'Trash']
+  },
+  {
+    id: 'screenplay',
+    name: 'Screenplay',
+    icon: '🎬',
+    desc: 'Acts, Scenes, Characters, Research folders',
+    folders: ['Act I', 'Act II', 'Act III', 'Characters', 'Research', 'Trash']
+  },
+  {
+    id: 'nonfiction',
+    name: 'Non-Fiction',
+    icon: '📚',
+    desc: 'Chapters, Research, Sources, Notes folders',
+    folders: ['Chapters', 'Research', 'Sources', 'Notes', 'Trash']
+  },
+  {
+    id: 'shortstory',
+    name: 'Short Story',
+    icon: '📄',
+    desc: 'Story, Research, Notes folders',
+    folders: ['Story', 'Research', 'Notes', 'Trash']
+  },
+  {
+    id: 'poetry',
+    name: 'Poetry',
+    icon: '✍️',
+    desc: 'Poems, Drafts, Inspiration folders',
+    folders: ['Poems', 'Drafts', 'Inspiration', 'Trash']
+  },
+  {
+    id: 'blank',
+    name: 'Blank',
+    icon: '🗒️',
+    desc: 'Single folder, no preset structure',
+    folders: ['Documents', 'Trash']
+  }
+];
+
+function renderStyleGrid() {
+  const grid = document.getElementById('style-grid');
+  const notice = document.getElementById('style-locked-notice');
+  if (!grid) return;
+
+  const s = currentProject ? (currentProject.settings || {}) : {};
+  const chosen = s.docStyle || null;
+  const isLocked = !!chosen; // style is locked once set
+
+  grid.innerHTML = DOC_STYLES.map(st => `
+    <div class="style-card ${chosen === st.id ? 'selected' : ''} ${isLocked ? 'locked' : ''}"
+         data-style-id="${st.id}" title="${isLocked ? 'Style locked after project creation' : st.name}">
+      ${chosen === st.id ? '<span class="sc-badge">Active</span>' : ''}
+      <div class="sc-icon">${st.icon}</div>
+      <div class="sc-name">${st.name}</div>
+      <div class="sc-desc">${st.desc}</div>
+    </div>
+  `).join('');
+
+  if (notice) notice.classList.toggle('show', isLocked);
+
+  if (!isLocked) {
+    grid.querySelectorAll('.style-card').forEach(card => {
+      card.addEventListener('click', () => {
+        grid.querySelectorAll('.style-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        if (currentProject) {
+          currentProject.settings = currentProject.settings || {};
+          currentProject.settings.docStyle = card.dataset.styleId;
+        }
+      });
+    });
+  }
+}
+
+function applyDocStyleBinder(styleId) {
+  const style = DOC_STYLES.find(s => s.id === styleId);
+  if (!style || !currentProject) return;
+  const genId = () => 'f-' + Math.random().toString(36).substr(2, 9);
+
+  // Build fresh binder based on style folders
+  const children = style.folders.map(name => {
+    const isTrash = name === 'Trash';
+    return {
+      id: genId(), title: name,
+      type: isTrash ? 'trash' : 'folder',
+      icon: isTrash ? 'trash-2' : name === 'Manuscript' || name === 'Story' || name === 'Poems' || name === 'Act I' ? 'book' : 'folder',
+      expanded: !isTrash,
+      children: []
+    };
+  });
+  currentProject.binder = { id: 'root', title: 'Root', type: 'root', children };
+}
+
+// ── QUICK-ADD LISTS (Characters / Places) ───────────────────────────────
+function initQuickAddList(listId, summaryId, btnId, type) {
+  const wrap   = document.getElementById(listId);
+  const sumEl  = document.getElementById(summaryId);
+  const btn    = document.getElementById(btnId);
+  if (!wrap) return;
+
+  let rows = [];   // array of { el, input }
+
+  function addRow(value) {
+    const row = document.createElement('div');
+    row.className = 'qalist-row';
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'qalist-input';
+    input.placeholder = value === undefined ? `New ${type} name…` : '';
+    input.value = value || '';
+
+    const del = document.createElement('button');
+    del.className = 'qalist-del';
+    del.title = 'Remove';
+    del.innerHTML = '🗑';
+
+    row.appendChild(input);
+    row.appendChild(del);
+    wrap.appendChild(row);
+
+    const entry = { el: row, input };
+    rows.push(entry);
+
+    // Show delete button and next empty field as soon as user starts typing
+    input.addEventListener('focus', () => {
+      del.classList.add('show');
+      // If this is the last row and it has content, add a fresh blank row
+      const isLast = rows[rows.length - 1].input === input;
+      if (isLast) addRow();
+      updateSummary();
+    });
+
+    input.addEventListener('input', () => {
+      const hasText = input.value.trim().length > 0;
+      del.classList.toggle('show', hasText);
+      updateSummary();
+    });
+
+    del.addEventListener('click', () => {
+      row.remove();
+      rows = rows.filter(r => r.el !== row);
+      // Always ensure at least one blank row at end
+      const lastInput = rows.length > 0 ? rows[rows.length - 1].input : null;
+      if (!lastInput || lastInput.value.trim()) addRow();
+      updateSummary();
+    });
+
+    return entry;
+  }
+
+  function updateSummary() {
+    const names = rows.map(r => r.input.value.trim()).filter(Boolean);
+    const count = names.length;
+    if (sumEl) sumEl.textContent = count === 0 ? '' : `${count} ${type}${count !== 1 ? 's' : ''} will be created`;
+    if (btn) btn.disabled = count === 0;
+  }
+
+  function getNames() {
+    return rows.map(r => r.input.value.trim()).filter(Boolean);
+  }
+
+  function reset() {
+    wrap.innerHTML = '';
+    rows = [];
+    addRow();
+    updateSummary();
+  }
+
+  // Attach create button
+  if (btn) {
+    btn.addEventListener('click', async () => {
+      const names = getNames();
+      if (!names.length || !currentProject) return;
+      await createQuickDocs(names, type);
+      reset();
+    });
+  }
+
+  // Expose reset and getNames on the wrapper for openSettings to call
+  wrap._reset = reset;
+  wrap._getNames = getNames;
+
+  // Initialize with one blank row
+  reset();
+}
+
+async function createQuickDocs(names, type) {
+  if (!currentProject) return;
+
+  // Find or create the correct folder in the binder
+  const folderTitle = type === 'Character' ? 'Characters' : 'Places';
+  let folder = findFolderByTitle(currentProject.binder, folderTitle);
+
+  if (!folder) {
+    // Create the folder before the Trash node
+    const genId = () => 'qf-' + Math.random().toString(36).substr(2, 9);
+    folder = { id: genId(), title: folderTitle, type: 'folder', icon: 'folder', expanded: true, children: [] };
+    const trashIdx = currentProject.binder.children.findIndex(c => c.type === 'trash');
+    if (trashIdx >= 0) currentProject.binder.children.splice(trashIdx, 0, folder);
+    else currentProject.binder.children.push(folder);
+  }
+  folder.expanded = true;
+
+  for (const name of names) {
+    // Create document via API
+    const res = await fetch(`${API}/api/documents/${currentProject.id}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: name })
+    });
+    const doc = await res.json();
+    currentProject.documents[doc.id] = doc;
+    folder.children.push({ id: doc.id, title: name, type: 'document', icon: 'file-text', children: [] });
+  }
+
+  await saveBinderState();
+  renderBinder();
+
+  // Notify
+  const count = names.length;
+  setSaveStatus('saved');
+  console.log(`Created ${count} ${type} document(s)`);
+}
+
+function findFolderByTitle(node, title) {
+  if (node.type === 'folder' && node.title === title) return node;
+  if (node.children) {
+    for (const c of node.children) {
+      const found = findFolderByTitle(c, title);
+      if (found) return found;
+    }
+  }
+  return null;
 }
 
 // ── INIT ──
