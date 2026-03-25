@@ -2264,6 +2264,18 @@ function renderScriptureContent(data) {
   ).join('');
   contentEl.innerHTML = inner;
   contentEl.scrollTop = 0;
+  clampScripturePane();
+}
+
+function clampScripturePane() {
+  const pane = document.getElementById('scripture-pane');
+  const wrap = document.getElementById('editor-wrap');
+  if (!pane || !wrap) return;
+  const maxH = Math.floor(wrap.offsetHeight * 0.50);
+  if (pane.offsetHeight > maxH) {
+    pane.style.height = maxH + 'px';
+    pane.style.flex   = 'none';
+  }
 }
 
 function buildScriptureError(msg, ref) {
