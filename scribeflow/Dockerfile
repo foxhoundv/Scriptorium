@@ -1,7 +1,10 @@
 FROM node:20-alpine
 
 LABEL maintainer="ScribeFlow"
-LABEL description="Self-hosted writing application"
+LABEL description="Self-hosted writing application with offline Bible support"
+
+# Install ca-certificates for HTTPS during Bible data fetch
+RUN apk add --no-cache ca-certificates
 
 # Create app directory
 WORKDIR /app
@@ -15,23 +18,28 @@ RUN npm install --production
 COPY backend/ ./
 COPY frontend/ ../frontend/
 
-# Declare /data as a volume mount point.
-# This does NOT create data inside the image — it signals to Docker that
-# /data should be provided by a volume at runtime, keeping project files
-# completely separate from the container image.
+# ── FETCH BIBLE DATA ──────────────────────────────────────────────────────
+# Downloads 6 public-domain translations (~25 MB total) at build time so
+# the Bible pane works fully offline at runtime with no external API calls.
+# Data is baked into the image layer in /app/data/bibles/.
+# If network is unavailable at build time, server starts normally and the
+# Bible pane shows a one-time setup notice.
+RUN node scripts/fetch-bibles.js || echo "[WARN] Bible data fetch skipped"
+
+# Declare /data as a volume (project files live here, separate from image)
 VOLUME ["/data"]
 
 # Expose port
 EXPOSE 3051
 
-# Health check (uses correct port 3051)
+# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
   CMD wget -qO- http://localhost:3051/api/health || exit 1
 
-# Environment defaults (overridden by docker-compose environment section)
+# Environment defaults
 ENV PORT=3051
 ENV DATA_DIR=/data
 ENV NODE_ENV=production
 
-# Start server — startup scan runs before the HTTP listener binds
+# Start server
 CMD ["node", "server.js"]

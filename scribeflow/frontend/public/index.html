@@ -641,47 +641,57 @@
   /* ── SCRIPTURE PANE ── */
   #scripture-pane {
     display: none; flex-direction: column; border-bottom: 2px solid var(--accent);
-    background: var(--bg2); flex-shrink: 0; min-height: 180px;
-    transition: height 0.2s;
+    background: var(--bg2); flex-shrink: 0; min-height: 140px;
   }
   #scripture-pane.active { display: flex; }
   body.distraction-free #scripture-pane { display: none !important; }
+
   #scripture-header {
-    display: flex; align-items: center; gap: 10px; padding: 6px 16px;
-    border-bottom: 1px solid var(--border); background: var(--bg3); flex-shrink: 0;
+    display: flex; align-items: center; gap: 6px; padding: 5px 12px;
+    border-bottom: 1px solid var(--border); background: var(--bg3);
+    flex-shrink: 0; flex-wrap: wrap; row-gap: 5px;
   }
   #scripture-label {
     font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase;
     letter-spacing: 1px; color: var(--text3); flex-shrink: 0;
   }
-  #bible-version-select {
+  /* shared style for all scripture header selects */
+  .scripture-sel {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+    padding: 3px 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--text); outline: none; cursor: pointer; height: 26px;
+  }
+  .scripture-sel:focus { border-color: var(--accent); }
+  .scripture-sel:disabled { opacity: 0.45; cursor: not-allowed; }
+  #bible-version-select  { min-width: 70px; }
+  #bible-testament-select { min-width: 120px; }
+  #bible-book-select     { min-width: 130px; flex: 1; max-width: 180px; }
+  #bible-chapter-select  { min-width: 64px; }
+  .sb-divider-v { width: 1px; height: 18px; background: var(--border); flex-shrink: 0; margin: 0 2px; }
+  #bible-ref-input {
     background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
     padding: 3px 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px;
-    color: var(--text); outline: none; cursor: pointer; min-width: 80px;
-  }
-  #bible-version-select:focus { border-color: var(--accent); }
-  #bible-ref-input {
-    flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
-    padding: 3px 10px; font-family: 'JetBrains Mono', monospace; font-size: 12px;
-    color: var(--text); outline: none; max-width: 220px;
+    color: var(--text); outline: none; width: 160px; height: 26px;
   }
   #bible-ref-input:focus { border-color: var(--accent); }
-  #bible-ref-input::placeholder { color: var(--text3); }
+  #bible-ref-input::placeholder { color: var(--text3); font-style: italic; }
   #bible-lookup-btn {
-    background: var(--accent); border: none; border-radius: 4px; padding: 4px 12px;
+    background: var(--accent); border: none; border-radius: 4px; padding: 0 10px;
     font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #fff;
-    cursor: pointer; transition: background 0.15s; flex-shrink: 0;
+    cursor: pointer; transition: background 0.15s; flex-shrink: 0; height: 26px;
   }
   #bible-lookup-btn:hover { background: var(--accent2); }
   #bible-lookup-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
   #scripture-resize-handle {
-    height: 5px; cursor: row-resize; background: transparent; flex-shrink: 0;
+    height: 6px; cursor: row-resize; background: transparent; flex-shrink: 0;
     position: relative; z-index: 5; transition: background 0.15s;
+    border-top: 1px solid var(--border);
   }
   #scripture-resize-handle:hover, #scripture-resize-handle.dragging { background: var(--accent); }
   #scripture-content {
     flex: 1; overflow-y: auto; padding: 14px 20px; font-family: 'Crimson Pro', serif;
-    font-size: 15px; line-height: 1.8; color: var(--text2);
+    font-size: 15px; line-height: 1.8; color: var(--text2); min-height: 0;
   }
   #scripture-content::-webkit-scrollbar { width: 4px; }
   #scripture-content::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
@@ -695,7 +705,7 @@
     margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border);
   }
   .scripture-loading { color: var(--text3); font-style: italic; font-size: 14px; }
-  .scripture-error { color: #c0392b; font-size: 13px; font-family: 'JetBrains Mono', monospace; }
+  .scripture-error { color: #c0392b; font-size: 13px; font-family: 'JetBrains Mono', monospace; line-height: 1.6; }
 
   /* Split editor: when scripture pane is active, editor-wrap becomes column flex */
   #editor-wrap.sermon-split { flex-direction: column; }
@@ -826,19 +836,27 @@
         <div id="scripture-pane">
           <div id="scripture-header">
             <span id="scripture-label">Scripture</span>
-            <select id="bible-version-select">
+            <select id="bible-version-select" class="scripture-sel" title="Translation">
               <option value="kjv">KJV</option>
-              <option value="web">WEB</option>
-              <option value="bbe">BBE</option>
-              <option value="asv">ASV</option>
-              <option value="darby">Darby</option>
-              <option value="ylt">YLT</option>
             </select>
-            <input id="bible-ref-input" type="text" placeholder="e.g. John 3:16 or Romans 8:1-8" />
-            <button id="bible-lookup-btn">Look Up</button>
+            <div class="sb-divider-v"></div>
+            <select id="bible-testament-select" class="scripture-sel" title="Testament">
+              <option value="">— Testament —</option>
+              <option value="ot">Old Testament</option>
+              <option value="nt">New Testament</option>
+            </select>
+            <select id="bible-book-select" class="scripture-sel" title="Book" disabled>
+              <option value="">— Book —</option>
+            </select>
+            <select id="bible-chapter-select" class="scripture-sel" title="Chapter" disabled>
+              <option value="">— Ch —</option>
+            </select>
+            <div class="sb-divider-v"></div>
+            <input id="bible-ref-input" type="text" placeholder="or type ref: John 3:16" title="Type a reference directly" />
+            <button id="bible-lookup-btn">Go</button>
           </div>
           <div id="scripture-content">
-            <div class="scripture-loading">Enter a scripture reference above (e.g. <em>John 3:16</em>, <em>Psalm 23</em>, <em>Romans 8:1-8</em>) and press Look Up.</div>
+            <div class="scripture-loading">Choose a testament, book, and chapter — or type a reference above.</div>
           </div>
           <div id="scripture-resize-handle"></div>
         </div>
@@ -1183,7 +1201,7 @@
 
 <script>
 // ── VERSION ──
-const APP_VERSION = '0.5';
+const APP_VERSION = '0.7';
 
 const API = '';
 let currentProject = null;
@@ -3162,98 +3180,264 @@ function applyProjectLayout() {
 }
 
 // ── SCRIPTURE PANE ──────────────────────────────────────────────────────
+// ── BIBLE BOOK LISTS ────────────────────────────────────────────────────
+const BIBLE_OT = [
+  ['genesis','Genesis'],['exodus','Exodus'],['leviticus','Leviticus'],
+  ['numbers','Numbers'],['deuteronomy','Deuteronomy'],['joshua','Joshua'],
+  ['judges','Judges'],['ruth','Ruth'],['1-samuel','1 Samuel'],
+  ['2-samuel','2 Samuel'],['1-kings','1 Kings'],['2-kings','2 Kings'],
+  ['1-chronicles','1 Chronicles'],['2-chronicles','2 Chronicles'],
+  ['ezra','Ezra'],['nehemiah','Nehemiah'],['esther','Esther'],['job','Job'],
+  ['psalms','Psalms'],['proverbs','Proverbs'],['ecclesiastes','Ecclesiastes'],
+  ['song-of-solomon','Song of Solomon'],['isaiah','Isaiah'],
+  ['jeremiah','Jeremiah'],['lamentations','Lamentations'],['ezekiel','Ezekiel'],
+  ['daniel','Daniel'],['hosea','Hosea'],['joel','Joel'],['amos','Amos'],
+  ['obadiah','Obadiah'],['jonah','Jonah'],['micah','Micah'],['nahum','Nahum'],
+  ['habakkuk','Habakkuk'],['zephaniah','Zephaniah'],['haggai','Haggai'],
+  ['zechariah','Zechariah'],['malachi','Malachi']
+];
+const BIBLE_NT = [
+  ['matthew','Matthew'],['mark','Mark'],['luke','Luke'],['john','John'],
+  ['acts','Acts'],['romans','Romans'],['1-corinthians','1 Corinthians'],
+  ['2-corinthians','2 Corinthians'],['galatians','Galatians'],
+  ['ephesians','Ephesians'],['philippians','Philippians'],
+  ['colossians','Colossians'],['1-thessalonians','1 Thessalonians'],
+  ['2-thessalonians','2 Thessalonians'],['1-timothy','1 Timothy'],
+  ['2-timothy','2 Timothy'],['titus','Titus'],['philemon','Philemon'],
+  ['hebrews','Hebrews'],['james','James'],['1-peter','1 Peter'],
+  ['2-peter','2 Peter'],['1-john','1 John'],['2-john','2 John'],
+  ['3-john','3 John'],['jude','Jude'],['revelation','Revelation']
+];
+const BIBLE_CHAPTER_COUNTS = {
+  'genesis':50,'exodus':40,'leviticus':27,'numbers':36,'deuteronomy':34,
+  'joshua':24,'judges':21,'ruth':4,'1-samuel':31,'2-samuel':24,
+  '1-kings':22,'2-kings':25,'1-chronicles':29,'2-chronicles':36,
+  'ezra':10,'nehemiah':13,'esther':10,'job':42,'psalms':150,'proverbs':31,
+  'ecclesiastes':12,'song-of-solomon':8,'isaiah':66,'jeremiah':52,
+  'lamentations':5,'ezekiel':48,'daniel':12,'hosea':14,'joel':3,'amos':9,
+  'obadiah':1,'jonah':4,'micah':7,'nahum':3,'habakkuk':3,'zephaniah':3,
+  'haggai':2,'zechariah':14,'malachi':4,
+  'matthew':28,'mark':16,'luke':24,'john':21,'acts':28,
+  'romans':16,'1-corinthians':16,'2-corinthians':13,'galatians':6,
+  'ephesians':6,'philippians':4,'colossians':4,
+  '1-thessalonians':5,'2-thessalonians':3,
+  '1-timothy':6,'2-timothy':4,'titus':3,'philemon':1,
+  'hebrews':13,'james':5,'1-peter':5,'2-peter':3,
+  '1-john':5,'2-john':1,'3-john':1,'jude':1,'revelation':22
+};
+
+// ── SCRIPTURE PANE INIT ─────────────────────────────────────────────────
 let scriptureInitialized = false;
 
 function initScripturePane() {
   if (scriptureInitialized) return;
   scriptureInitialized = true;
 
-  // Bible version change reruns lookup if there's a current ref
+  loadBibleTranslations();
+  initScriptureNavSelects();
+  initScriptureResize();
+
+  // Version change: re-load current chapter if one is selected
   document.getElementById('bible-version-select').addEventListener('change', () => {
-    const ref = document.getElementById('bible-ref-input').value.trim();
-    if (ref) lookupScripture(ref);
+    const book = document.getElementById('bible-book-select').value;
+    const ch   = document.getElementById('bible-chapter-select').value;
+    if (book && ch) loadChapter(book, parseInt(ch));
   });
 
+  // Free-text lookup button and Enter key
   document.getElementById('bible-lookup-btn').addEventListener('click', () => {
     const ref = document.getElementById('bible-ref-input').value.trim();
     if (ref) lookupScripture(ref);
   });
-
   document.getElementById('bible-ref-input').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       const ref = document.getElementById('bible-ref-input').value.trim();
       if (ref) lookupScripture(ref);
     }
   });
+}
 
-  // Resizable scripture pane (row-resize handle)
-  initScriptureResize();
+function initScriptureNavSelects() {
+  const testSel  = document.getElementById('bible-testament-select');
+  const bookSel  = document.getElementById('bible-book-select');
+  const chapSel  = document.getElementById('bible-chapter-select');
+
+  // Testament → populate books
+  testSel.addEventListener('change', () => {
+    const testament = testSel.value;
+    bookSel.innerHTML = '<option value="">— Book —</option>';
+    chapSel.innerHTML = '<option value="">— Ch —</option>';
+    chapSel.disabled  = true;
+
+    if (!testament) { bookSel.disabled = true; return; }
+    const list = testament === 'ot' ? BIBLE_OT : BIBLE_NT;
+    list.forEach(([slug, name]) => {
+      const opt = document.createElement('option');
+      opt.value = slug; opt.textContent = name;
+      bookSel.appendChild(opt);
+    });
+    bookSel.disabled = false;
+  });
+
+  // Book → populate chapters
+  bookSel.addEventListener('change', () => {
+    const book = bookSel.value;
+    chapSel.innerHTML = '<option value="">— Ch —</option>';
+    if (!book) { chapSel.disabled = true; return; }
+    const count = BIBLE_CHAPTER_COUNTS[book] || 1;
+    for (let i = 1; i <= count; i++) {
+      const opt = document.createElement('option');
+      opt.value = i; opt.textContent = i;
+      chapSel.appendChild(opt);
+    }
+    chapSel.disabled = false;
+    // Auto-load chapter 1
+    chapSel.value = '1';
+    loadChapter(book, 1);
+  });
+
+  // Chapter → load
+  chapSel.addEventListener('change', () => {
+    const book = bookSel.value;
+    const ch   = parseInt(chapSel.value);
+    if (book && ch) loadChapter(book, ch);
+  });
+}
+
+async function loadBibleTranslations() {
+  try {
+    const res = await fetch(`${API}/api/bible/translations`);
+    if (!res.ok) return;
+    const translations = await res.json();
+    if (!translations.length) return;
+    const sel = document.getElementById('bible-version-select');
+    sel.innerHTML = translations.map(t =>
+      `<option value="${t.id}">${t.label} — ${t.name}</option>`
+    ).join('');
+  } catch(e) { /* keep default KJV */ }
+}
+
+async function loadChapter(book, chapter) {
+  const version   = document.getElementById('bible-version-select').value;
+  const contentEl = document.getElementById('scripture-content');
+  contentEl.innerHTML = '<div class="scripture-loading">Loading…</div>';
+  try {
+    const url = `${API}/api/bible/${encodeURIComponent(version)}/${encodeURIComponent(book)}/${chapter}`;
+    const res  = await fetch(url);
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || `Server error ${res.status}`);
+    renderScriptureContent(data);
+  } catch(err) {
+    contentEl.innerHTML = buildScriptureError(err.message, '');
+  }
 }
 
 async function lookupScripture(ref) {
-  const version = document.getElementById('bible-version-select').value;
+  const version   = document.getElementById('bible-version-select').value;
   const contentEl = document.getElementById('scripture-content');
-  const btn = document.getElementById('bible-lookup-btn');
-
-  contentEl.innerHTML = '<div class="scripture-loading">Loading…</div>';
+  const btn       = document.getElementById('bible-lookup-btn');
+  contentEl.innerHTML = '<div class="scripture-loading">Looking up…</div>';
   btn.disabled = true;
-
   try {
-    // Use bible-api.com — free, no key required, CORS-friendly
-    const encoded = encodeURIComponent(ref);
-    const url = `https://bible-api.com/${encoded}?translation=${version}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const url  = `${API}/api/bible/search?q=${encodeURIComponent(ref)}&trans=${encodeURIComponent(version)}`;
+    const res  = await fetch(url);
     const data = await res.json();
-
-    if (data.error) throw new Error(data.error);
-
-    // Build display
-    let html = `<div class="scripture-book-title">${escHtml(data.reference)}</div>`;
-    if (data.verses && data.verses.length > 0) {
-      html += data.verses.map(v =>
-        `<div class="scripture-verse"><span class="scripture-verse-num">${v.verse}</span>${escHtml(v.text.trim())}</div>`
-      ).join('');
-    } else if (data.text) {
-      html += `<div class="scripture-verse">${escHtml(data.text)}</div>`;
-    }
-    contentEl.innerHTML = html;
-  } catch (err) {
-    contentEl.innerHTML = `<div class="scripture-error">Could not load "${escHtml(ref)}" — ${escHtml(err.message)}.<br>Try a format like: <em>John 3:16</em>, <em>Psalm 23</em>, <em>Romans 8:1-8</em></div>`;
+    if (!res.ok || data.error) throw new Error(data.error || `Server error ${res.status}`);
+    renderScriptureContent(data);
+    // Sync dropdowns to match the looked-up reference
+    syncDropdownsToRef(data.book, data.chapter);
+  } catch(err) {
+    contentEl.innerHTML = buildScriptureError(err.message, ref);
   } finally {
     btn.disabled = false;
   }
 }
 
+function renderScriptureContent(data) {
+  const contentEl = document.getElementById('scripture-content');
+  let inner = `<div class="scripture-book-title">${escHtml(data.reference)}`
+    + ` <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);font-weight:400;">${escHtml(data.translation)}</span></div>`;
+  inner += data.verses.map(v =>
+    `<div class="scripture-verse"><span class="scripture-verse-num">${v.verse}</span>${escHtml(v.text)}</div>`
+  ).join('');
+  contentEl.innerHTML = inner;
+  contentEl.scrollTop = 0;
+}
+
+function buildScriptureError(msg, ref) {
+  const isMissing = msg.includes('not available') || msg.includes('not found') || msg.includes('fetch-bibles') || msg.includes('not yet');
+  return isMissing
+    ? `<div class="scripture-error">Bible data not yet downloaded.<br><br>Run: <code style="background:var(--bg3);padding:2px 6px;border-radius:3px;font-family:'JetBrains Mono',monospace;">node backend/scripts/fetch-bibles.js</code><br>or rebuild the Docker image to fetch automatically.</div>`
+    : `<div class="scripture-error">Could not load${ref ? ` "<em>${escHtml(ref)}</em>"` : ' that reference'}.<br><br>Try: <em>John 3:16</em> · <em>Psalm 23</em> · <em>Romans 8:1-8</em></div>`;
+}
+
+function syncDropdownsToRef(bookSlug, chapter) {
+  // Determine OT or NT
+  const isNT = BIBLE_NT.some(([slug]) => slug === bookSlug);
+  const testSel = document.getElementById('bible-testament-select');
+  const bookSel = document.getElementById('bible-book-select');
+  const chapSel = document.getElementById('bible-chapter-select');
+
+  testSel.value = isNT ? 'nt' : 'ot';
+  testSel.dispatchEvent(new Event('change'));  // populate books
+
+  // Small timeout so the book options are rendered before we set value
+  setTimeout(() => {
+    bookSel.value = bookSlug;
+    // Populate chapters for this book
+    const count = BIBLE_CHAPTER_COUNTS[bookSlug] || 1;
+    chapSel.innerHTML = '<option value="">— Ch —</option>';
+    for (let i = 1; i <= count; i++) {
+      const opt = document.createElement('option');
+      opt.value = i; opt.textContent = i;
+      chapSel.appendChild(opt);
+    }
+    chapSel.disabled = false;
+    chapSel.value = String(chapter);
+  }, 0);
+}
+
 function initScriptureResize() {
   const handle = document.getElementById('scripture-resize-handle');
   const pane   = document.getElementById('scripture-pane');
+  const wrap   = document.getElementById('editor-wrap');
   if (!handle || !pane) return;
 
   let dragging = false, startY = 0, startH = 0;
+
+  function getMaxHeight() {
+    // Never exceed 50% of the editor-wrap height (which is the visible area)
+    return Math.floor((wrap ? wrap.offsetHeight : window.innerHeight) * 0.50);
+  }
+  const MIN_H = 120;
 
   handle.addEventListener('mousedown', (e) => {
     e.preventDefault();
     dragging = true; startY = e.clientY; startH = pane.offsetHeight;
     handle.classList.add('dragging');
     document.body.style.cursor = 'row-resize';
+    document.body.style.webkitUserSelect = 'none';
     document.body.style.userSelect = 'none';
   });
   handle.addEventListener('touchstart', (e) => {
-    dragging = true; startY = e.touches[0].clientY; startH = pane.offsetHeight;
+    dragging = true;
+    startY = e.touches[0].clientY;
+    startH = pane.offsetHeight;
   }, { passive: true });
 
   document.addEventListener('mousemove', (e) => {
     if (!dragging) return;
-    const newH = Math.min(600, Math.max(120, startH + (e.clientY - startY)));
+    const maxH = getMaxHeight();
+    const newH = Math.min(maxH, Math.max(MIN_H, startH + (e.clientY - startY)));
     pane.style.height = newH + 'px';
-    pane.style.flex = 'none';
+    pane.style.flex   = 'none';
   });
   document.addEventListener('touchmove', (e) => {
     if (!dragging) return;
-    const newH = Math.min(600, Math.max(120, startH + (e.touches[0].clientY - startY)));
+    const maxH = getMaxHeight();
+    const newH = Math.min(maxH, Math.max(MIN_H, startH + (e.touches[0].clientY - startY)));
     pane.style.height = newH + 'px';
-    pane.style.flex = 'none';
+    pane.style.flex   = 'none';
   }, { passive: true });
 
   const stopDrag = () => {
@@ -3261,6 +3445,7 @@ function initScriptureResize() {
     dragging = false;
     handle.classList.remove('dragging');
     document.body.style.cursor = '';
+    document.body.style.webkitUserSelect = '';
     document.body.style.userSelect = '';
   };
   document.addEventListener('mouseup', stopDrag);

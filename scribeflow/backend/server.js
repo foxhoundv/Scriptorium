@@ -6,6 +6,7 @@ const fs = require('fs-extra');
 const projectsRouter = require('./routes/projects');
 const documentsRouter = require('./routes/documents');
 const exportRouter = require('./routes/export');
+const bibleRouter  = require('./routes/bible');
 
 const app = express();
 const PORT = process.env.PORT || 3051;
@@ -16,7 +17,7 @@ const PROJECTS_DIR = path.join(DATA_DIR, 'projects');
 async function startupScan() {
   const line = '─'.repeat(52);
   console.log(line);
-  console.log('  ScribeFlow  v0.5');
+  console.log('  ScribeFlow  v0.7');
   console.log(line);
   console.log(`  Port           : ${PORT}`);
   console.log(`  Data directory : ${DATA_DIR}`);
@@ -115,6 +116,18 @@ async function startupScan() {
 
   console.log(line);
   console.log(`  Loaded: ${loaded}  |  Repaired: ${repaired}  |  Skipped (corrupt): ${corrupted}`);
+  // Report Bible data status
+  const bibleDir   = path.join(DATA_DIR, '..', 'bibles') ;
+  const biblesData = path.join(__dirname, 'data', 'bibles', 'index.json');
+  if (require('fs-extra').existsSync(biblesData)) {
+    try {
+      const idx = JSON.parse(require('fs').readFileSync(biblesData, 'utf8'));
+      console.log(`  Bible data     : ${idx.length} translation(s) ready`);
+    } catch { console.log('  Bible data     : index unreadable'); }
+  } else {
+    console.log('  Bible data     : NOT FOUND — run scripts/fetch-bibles.js');
+    console.log('  (Bible data is fetched during Docker build automatically)');
+  }
   console.log(line);
 }
 
@@ -128,14 +141,15 @@ app.locals.DATA_DIR = DATA_DIR;
 app.use('/api/projects',  projectsRouter);
 app.use('/api/documents', documentsRouter);
 app.use('/api/export',    exportRouter);
+app.use('/api/bible',     bibleRouter);
 
 // Health check — includes live project count to verify volume access
 app.get('/api/health', async (req, res) => {
   try {
     const files = (await fs.readdir(PROJECTS_DIR)).filter(f => f.endsWith('.json'));
-    res.json({ status: 'ok', version: '0.5.0', name: 'ScribeFlow', projects: files.length, dataDir: DATA_DIR });
+    res.json({ status: 'ok', version: '0.7.0', name: 'ScribeFlow', projects: files.length, dataDir: DATA_DIR });
   } catch {
-    res.json({ status: 'ok', version: '0.5.0', name: 'ScribeFlow', projects: 0, dataDir: DATA_DIR });
+    res.json({ status: 'ok', version: '0.7.0', name: 'ScribeFlow', projects: 0, dataDir: DATA_DIR });
   }
 });
 

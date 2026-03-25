@@ -121,6 +121,17 @@ log "Installing Node.js dependencies…"
 cd "$INSTALL_DIR/backend"
 npm install --production
 
+# ── BIBLE DATA ────────────────────────────────────────────────────────────
+BIBLE_INDEX="$INSTALL_DIR/backend/data/bibles/index.json"
+if [ -f "$BIBLE_INDEX" ]; then
+  BIBLE_COUNT=$(python3 -c "import json,sys; print(len(json.load(open('$BIBLE_INDEX'))))" 2>/dev/null || echo "?")
+  log "Bible data already present (${BIBLE_COUNT} translation(s)) — skipping fetch."
+else
+  log "Downloading Bible data (public domain translations)…"
+  log "This fetches ~25 MB once and is required for the Scripture pane."
+  node "$INSTALL_DIR/backend/scripts/fetch-bibles.js" || warn "Bible fetch failed — run manually: node $INSTALL_DIR/backend/scripts/fetch-bibles.js"
+fi
+
 # ── PERMISSIONS ──────────────────────────────────────────────────────────
 chown -R "$SERVICE_USER:$SERVICE_USER" "$INSTALL_DIR"
 # Re-apply data dir ownership in case the copy above changed anything
