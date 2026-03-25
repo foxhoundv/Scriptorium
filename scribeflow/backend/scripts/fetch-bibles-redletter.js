@@ -142,12 +142,16 @@ function httpGetBuffer(url) {
  *   \w word|strong="G0001" x-morph="Gr,EA,,,,NMS,"\w*
  * The pipe and everything after it (up to the closing \w*) must be removed so
  * only the plain word text remains.
+ *
+ * eBible.org also uses the nested-marker form \+wj / \+wj* when the Words of
+ * Jesus marker appears inside another character style (e.g. inside \w...\w*).
+ * Both \wj and \+wj must be caught before the generic marker-stripping pass.
  */
 function cleanVerseText(raw) {
   return raw
-    // Protect wj markers first
-    .replace(/\\wj\*/g,  '[[/wj]]')
-    .replace(/\\wj\b/g,  '[[wj]]')
+    // Protect wj markers first — both standard (\wj) and nested (\+wj) forms
+    .replace(/\\\+?wj\*/g,  '[[/wj]]')
+    .replace(/\\\+?wj\b/g,  '[[wj]]')
     // Strip pipe-delimited Strong's / morphology attributes inside word markers
     // e.g.  "beginning|strong="G0746""  →  "beginning"
     .replace(/\|[^\\\s>]+="[^"]*"/g, '')
@@ -342,7 +346,21 @@ async function main() {
 
     const bookCount = Object.values(bible.books)
       .filter(b => Object.keys(b.chapters).length > 0).length;
-    console.log(`  Parsed ${bookCount} books`);
+
+    // Count how many verses contain red-letter tokens as a sanity check
+    let wjVerseCount = 0;
+    for (const book of Object.values(bible.books)) {
+      for (const ch of Object.values(book.chapters)) {
+        for (const v of ch) {
+          if (v.text && v.text.includes('[[wj]]')) wjVerseCount++;
+        }
+      }
+    }
+    console.log(`  Parsed ${bookCount} books — ${wjVerseCount} red-letter verse(s) found`);
+    if (wjVerseCount === 0) {
+      console.warn('  ⚠  No \\wj markers found in source — red-letter data will be absent.');
+      console.warn('     Verify the USFM zip contains red-letter markup.');
+    }
 
     fs.writeFileSync(outFile, JSON.stringify(bible));
     const mb = (fs.statSync(outFile).size / 1024 / 1024).toFixed(1);
