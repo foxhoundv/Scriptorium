@@ -1,6 +1,6 @@
 # ScribeFlow — Self-Hosted Writing Workspace
 
-> Current version: **v1.3**  
+> Current version: **v1.4**  
 > A Scrivener-inspired writing application designed to run entirely on your own server via Docker or Proxmox LXC. No subscriptions, no cloud, no external dependencies at runtime.
 
 ---
@@ -267,7 +267,7 @@ ScribeFlow includes a built-in Bible scripture viewer for **Pastoral Sermons** p
 | `en-ylt` | YLT | Young's Literal Translation (1898) |
 | `en-darby` | Darby | Darby Translation (1890) |
 
-All translations are public domain. Source: [github.com/wldeh/bible-api](https://github.com/wldeh/bible-api) (jsDelivr CDN).
+All translations are public domain. Source: [bible-api.com](https://bible-api.com) (Tim Morgan, open source).
 
 ### Fetching Bible data — Docker
 

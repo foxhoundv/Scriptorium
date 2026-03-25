@@ -4,6 +4,19 @@ All notable changes are documented here. Version increments by tenths.
 
 ---
 
+## Version 1.4
+
+### Bug Fix
+
+**Bible fetcher — switched from wldeh CDN to bible-api.com**
+- Multiple versions attempted to work around HTTP 403 errors from the jsDelivr CDN (wldeh/bible-api) for books with numbered or multi-word names. The CDN's actual folder naming convention cannot be verified without network access and all variants tried produced 403s.
+- Switched the data source to **bible-api.com** which accepts natural-language chapter references (`1 Samuel 1`, `Song of Solomon 3`, `1 Corinthians 13`) as URL query parameters instead of file paths. This completely eliminates path-naming issues — the book display name is percent-encoded as a query string value, not a path segment.
+- Translation IDs updated to match bible-api.com convention (`kjv`, `asv`, `web`, `bbe`, `ylt`, `darby` instead of `en-kjv`, `en-asv`, etc.)
+- Added polite 150ms delay between requests (bible-api.com is a small open-source service)
+- Fix applied to both `backend/scripts/fetch-bibles.js` and `download-bibles.js`
+- All previously failed chapters stored as empty `[]` will be repaired on the next run
+
+
 ## Version 1.3
 
 ### Bug Fix
@@ -201,7 +214,8 @@ node /opt/scribeflow/backend/scripts/fetch-bibles.js  # fetch Bible data separat
 | Version | Date | Summary |
 |---------|------|---------|
 | 1.1 | 2026-03 | Hot-link fallback names + export replacement |
-| 1.3 | 2026-03 | Bible fetcher self-probing CDN slug detection |
+| 1.4 | 2026-03 | Bible fetcher switched to bible-api.com |
+| 1.3 | 2026-03 | Bible fetcher self-probing CDN slug detection (superseded) |
 | 1.2 | 2026-03 | Bible fetcher 403 fix — revert %20 encoding |
 | 1.1 | 2026-03 | Bible fetcher book name encoding fix (reverted) |
 | 1.0 | 2026-03 | Project type labels on home screen |

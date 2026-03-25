@@ -15,7 +15,7 @@
  *
  *   ID          Label   Full name
  *   ─────────── ─────── ──────────────────────────────────
- *   en-kjv      KJV     King James Version (1769)
+ *   KJV     King James Version (1769)
  *   en-asv      ASV     American Standard Version (1901)
  *   en-web      WEB     World English Bible (modern, public domain)
  *   en-bbe      BBE     Bible in Basic English (1949/1964)
@@ -61,16 +61,24 @@ const fs    = require('fs');
 const path  = require('path');
 
 const OUT_DIR = path.join(__dirname, 'bibles');
-const CDN     = 'https://cdn.jsdelivr.net/gh/wldeh/bible-api@main/bibles';
+const BASE_URL = 'https://bible-api.com';
+
+// Build a bible-api.com URL for a full chapter using the display name.
+// Natural language references bypass all CDN path-naming issues entirely.
+function chapterUrl(bookSlug, chapter, translationId) {
+  const name = BOOK_NAMES[bookSlug] || bookSlug;
+  const ref  = name + ' ' + chapter;
+  return BASE_URL + '/' + encodeURIComponent(ref) + '?translation=' + translationId;
+}
 
 // ── TRANSLATIONS ─────────────────────────────────────────────────────────
 const TRANSLATIONS = [
-  { id: 'en-kjv',   label: 'KJV',   name: 'King James Version' },
-  { id: 'en-asv',   label: 'ASV',   name: 'American Standard Version' },
-  { id: 'en-web',   label: 'WEB',   name: 'World English Bible' },
-  { id: 'en-bbe',   label: 'BBE',   name: 'Bible in Basic English' },
-  { id: 'en-ylt',   label: 'YLT',   name: "Young's Literal Translation" },
-  { id: 'en-darby', label: 'Darby', name: 'Darby Translation' },
+  { id: 'kjv',   label: 'KJV',   name: 'King James Version' },
+  { id: 'asv',   label: 'ASV',   name: 'American Standard Version' },
+  { id: 'web',   label: 'WEB',   name: 'World English Bible' },
+  { id: 'bbe',   label: 'BBE',   name: 'Bible in Basic English' },
+  { id: 'ylt',   label: 'YLT',   name: "Young's Literal Translation" },
+  { id: 'darby', label: 'Darby', name: 'Darby Translation' },
 ];
 
 // ── 66 CANONICAL BOOKS (Protestant) ─────────────────────────────────────
@@ -143,21 +151,7 @@ const CHAPTER_COUNTS = {
 // Total chapters across all 66 books = 1,189
 const TOTAL_CHAPTERS = Object.values(CHAPTER_COUNTS).reduce((a, b) => a + b, 0);
 
-// CDN slug probing — tries multiple slug variants until one returns HTTP 200.
-// Caches the working format per book so only one probe per book is needed.
-const ORDINALS = ['first','second','third'];
-function slugVariants(slug) {
-  const variants = [slug];
-  const dm = slug.match(/^([0-9]+)-(.+)$/);
-  if (dm) {
-    variants.push(dm[1] + dm[2]);
-    const ord = ORDINALS[parseInt(dm[1]) - 1];
-    if (ord) { variants.push(ord + '-' + dm[2]); variants.push(ord + dm[2]); }
-  }
-  if (slug.includes('-')) variants.push(slug.replace(/-/g, ''));
-  return variants.filter((v, i, a) => a.indexOf(v) === i);
-}
-const cdnSlugCache = {};
+
 
 // ── HTTP HELPER ───────────────────────────────────────────────────────────
 function get(url, attempt) {
@@ -238,19 +232,10 @@ async function fetchTranslation(t) {
 
       while (retries > 0) {
         try {
-          // Resolve CDN slug on first use of this book
-        const cacheKey = t.id + ':' + book;
-        if (!cdnSlugCache[cacheKey]) {
-          const candidates = slugVariants(book);
-          let resolved = null;
-          for (const candidate of candidates) {
-            try { await get(CDN + '/' + t.id + '/books/' + candidate + '/chapters/1.json'); resolved = candidate; break; } catch(e) {}
-          }
-          cdnSlugCache[cacheKey] = resolved || book;
-        }
-        const url  = CDN + '/' + t.id + '/books/' + cdnSlugCache[t.id + ':' + book] + '/chapters/' + ch + '.json';
+          const url  = chapterUrl(book, ch, t.id);
           const data = await get(url);
           // Normalise to array of {verse, text}
+          if (data.error) throw new Error(data.error);
           const verses = Array.isArray(data.verses) ? data.verses
                        : Array.isArray(data)        ? data
                        : [];
@@ -260,7 +245,7 @@ async function fetchTranslation(t) {
           }));
           chaptersDone++;
           progress(chaptersDone, TOTAL_CHAPTERS, BOOK_NAMES[book] + ' ' + ch);
-          await sleep(20); // polite delay — ~50 req/s max
+          await sleep(150); // bible-api.com — be polite
           break;
         } catch (err) {
           retries--;
