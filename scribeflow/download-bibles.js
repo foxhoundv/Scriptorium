@@ -143,6 +143,10 @@ const CHAPTER_COUNTS = {
 // Total chapters across all 66 books = 1,189
 const TOTAL_CHAPTERS = Object.values(CHAPTER_COUNTS).reduce((a, b) => a + b, 0);
 
+// Book slugs in BOOKS[] use hyphens (e.g. 'song-of-solomon', '1-samuel').
+// These are the exact folder names used in the CDN — no conversion needed.
+// Hyphens are valid URL characters and must NOT be converted to spaces.
+
 // ── HTTP HELPER ───────────────────────────────────────────────────────────
 function get(url, attempt) {
   attempt = attempt || 1;

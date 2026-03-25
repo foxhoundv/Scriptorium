@@ -4,6 +4,30 @@ All notable changes are documented here. Version increments by tenths.
 
 ---
 
+## Version 1.2
+
+### Bug Fix
+
+**Bible fetcher — 403 error on multi-word book names**
+- v1.1 introduced `CDN_BOOK_SLUGS` and `cdnBookPath()` which converted hyphens to spaces and percent-encoded them (e.g. `1-samuel` → `1%20samuel`). jsDelivr returns HTTP 403 for paths containing `%20` as a CDN policy block.
+- The CDN file paths in the wldeh/bible-api repository use the **same hyphen-separated slugs** as our internal `BOOKS` array (`song-of-solomon`, `1-samuel`, `1-corinthians`, etc.). Hyphens are valid URL path characters and require no encoding or conversion.
+- Removed `CDN_BOOK_SLUGS`, `cdnBookPath()`, and all `encodeURIComponent` calls from both `backend/scripts/fetch-bibles.js` and `download-bibles.js`. The URL is now built with the slug directly, identical to how single-word books were always handled.
+- Re-running the fetcher will repair all chapters that previously 403'd and were stored as empty `[]`.
+
+
+## Version 1.1
+
+### Bug Fixes
+
+**Bible fetcher — book name encoding**
+- Books whose names contain spaces or numbers (1 Samuel, Song of Solomon, 1 Corinthians, etc.) were being requested with hyphens in the CDN URL path, which the CDN does not recognise
+- Added `CDN_BOOK_SLUGS` map and `cdnBookPath()` helper that converts internal storage slugs (hyphen-separated) to the space-separated names the CDN expects, then percent-encodes them
+- All 22 affected books now resolve correctly: 1 Samuel, 2 Samuel, 1 Kings, 2 Kings, 1 Chronicles, 2 Chronicles, Song of Solomon, 1 Corinthians, 2 Corinthians, 1 Thessalonians, 2 Thessalonians, 1 Timothy, 2 Timothy, 1 Peter, 2 Peter, 1 John, 2 John, 3 John
+- A fallback converts any unmapped slug by replacing hyphens with spaces, future-proofing against any additional books
+- Fix applied to both `backend/scripts/fetch-bibles.js` and the standalone `download-bibles.js`
+- Re-running the fetcher will now correctly fill in any chapters from these books that previously failed and were stored as empty arrays
+
+
 ## Version 1.1
 
 ### New Features
@@ -163,6 +187,8 @@ node /opt/scribeflow/backend/scripts/fetch-bibles.js  # fetch Bible data separat
 | Version | Date | Summary |
 |---------|------|---------|
 | 1.1 | 2026-03 | Hot-link fallback names + export replacement |
+| 1.2 | 2026-03 | Bible fetcher 403 fix — revert %20 encoding |
+| 1.1 | 2026-03 | Bible fetcher book name encoding fix (reverted) |
 | 1.0 | 2026-03 | Project type labels on home screen |
 | 0.9 | 2026-03 | Bible fetcher audit + selective repair |
 | 0.8 | 2026-03 | Bible fetch as separate post-install step |

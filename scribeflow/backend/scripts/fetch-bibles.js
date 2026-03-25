@@ -103,6 +103,10 @@ const CHAPTER_COUNTS = {
 
 const TOTAL_CHAPTERS = Object.values(CHAPTER_COUNTS).reduce((a, b) => a + b, 0); // 1,189
 
+// Book slugs in BOOKS[] use hyphens (e.g. 'song-of-solomon', '1-samuel').
+// These are the exact folder names used in the CDN — no conversion needed.
+// Hyphens are valid URL characters and must NOT be converted to spaces.
+
 // ── HTTP ─────────────────────────────────────────────────────────────────
 
 function httpGet(url) {
