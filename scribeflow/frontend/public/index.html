@@ -2887,7 +2887,6 @@ async function createQuickDocs(names, type) {
   let folder = findFolderByTitle(currentProject.binder, folderTitle);
 
   if (!folder) {
-    // Create the folder before the Trash node
     const genId = () => 'qf-' + Math.random().toString(36).substr(2, 9);
     folder = { id: genId(), title: folderTitle, type: 'folder', icon: 'folder', expanded: true, children: [] };
     const trashIdx = currentProject.binder.children.findIndex(c => c.type === 'trash');
@@ -2895,6 +2894,11 @@ async function createQuickDocs(names, type) {
     else currentProject.binder.children.push(folder);
   }
   folder.expanded = true;
+
+  // hlType maps to the hot-link type string used in the hl system
+  const hlType = type === 'Character' ? 'character' : 'place';
+  const existingHlPages = getHlPages();
+  const newHlEntries = [];
 
   for (const name of names) {
     // Create document via API
@@ -2905,15 +2909,31 @@ async function createQuickDocs(names, type) {
     const doc = await res.json();
     currentProject.documents[doc.id] = doc;
     folder.children.push({ id: doc.id, title: name, type: 'document', icon: 'file-text', children: [] });
+
+    // Auto-register as a hot-link if not already present
+    const alreadyLinked = existingHlPages.some(p => p.docId === doc.id);
+    if (!alreadyLinked) {
+      newHlEntries.push({ type: hlType, name, docId: doc.id });
+    }
+  }
+
+  // Merge new entries into the hot-links list and persist
+  if (newHlEntries.length) {
+    const merged = [...existingHlPages, ...newHlEntries];
+    saveHlPages(merged);
+    // Persist settings to server immediately (hot-links live in settings)
+    await fetch(`${API}/api/projects/${currentProject.id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ settings: currentProject.settings, binder: currentProject.binder })
+    });
+    // Refresh the Hot-Links panel UI if it's currently visible
+    renderHlPagesList();
+    populateHlDocPicker();
   }
 
   await saveBinderState();
   renderBinder();
-
-  // Notify
-  const count = names.length;
   setSaveStatus('saved');
-  console.log(`Created ${count} ${type} document(s)`);
 }
 
 function findFolderByTitle(node, title) {
