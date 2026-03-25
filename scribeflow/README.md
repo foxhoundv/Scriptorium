@@ -1,6 +1,6 @@
 # ScribeFlow — Self-Hosted Writing Workspace
 
-> Current version: **v1.6**  
+> Current version: **v2.1**
 > A Scrivener-inspired writing application designed to run entirely on your own server via Docker or Proxmox LXC. No subscriptions, no cloud, no external dependencies at runtime.
 
 ---
@@ -12,6 +12,7 @@
 - [Deployment: Docker](#deployment-docker)
 - [Deployment: Proxmox LXC](#deployment-proxmox-lxc)
 - [Bible Data Setup](#bible-data-setup)
+- [Multi-User SSO](#multi-user-sso)
 - [Updating ScribeFlow](#updating-scribeflow)
 - [API Reference](#api-reference)
 - [Data Storage](#data-storage)
@@ -44,7 +45,7 @@
   - **Poetry** — Poems, Drafts, Inspiration
   - **Research** — Topics, Sources, Notes, References *(unlocks Research Type)*
   - **Blank** — Single Documents folder
-- **Document style is locked after first save** — creates a new project to use a different style
+- **Document style is locked after first save** — create a new project to use a different style
 - **Research Type** — Available only for Research-style projects. Choose between:
   - **Academics** — standard layout
   - **Pastoral Sermons** — adds a live Bible scripture pane to the editor (see [Bible Data Setup](#bible-data-setup))
@@ -67,7 +68,7 @@ Accessible from the toolbar (⚙) or by hovering a project card on the home scre
 ### Goals & Status Bar
 
 - Set a **Final Word Count** and **Daily Word Goal** in Settings → Goals
-- A **status bar** at the bottom of the editor shows live progress bars for both goals while you are inside a project
+- A **status bar** at the bottom of the editor shows live progress bars for both goals while inside a project
 - The status bar also shows a **deadline chip** that turns red within 7 days or when overdue
 
 ### Hot-Links
@@ -79,6 +80,7 @@ Hot-links let you insert inline reference badges while writing that open a chara
 - While writing, type `hl/` to trigger the autocomplete menu — up to 10 matches appear
 - Navigate with `↑ ↓`, confirm with `Enter` or `Tab`, dismiss with `Escape`
 - Click an inserted badge to open a popover showing the linked document's synopsis and notes, with an **Open Document** button
+- **Name upon removal** — each hot-link has a configurable fallback text used when exporting without hot-links
 
 ### Pastoral Sermons Layout
 
@@ -106,6 +108,8 @@ Export the entire compiled manuscript (all documents marked "Include in Compile"
 | `.html` | Print-ready HTML — open in browser → Print → Save as PDF |
 | `.json` | Full project backup including all documents and settings |
 
+When a project contains hot-links, a modal appears at export time with the choice to keep them as plain names or replace them with each hot-link's configured fallback name.
+
 ### Scrivener Import
 
 Import existing `.scriv` or `.scrivx` projects from Scrivener:
@@ -115,6 +119,19 @@ Import existing `.scriv` or `.scrivx` projects from Scrivener:
 - Falls back to flat import if no XML manifest is found
 - Progress bar shown during import; project list refreshes on completion
 
+### Multi-User & Collaboration
+
+Optional Google SSO authentication and real-time collaboration (disabled by default — see [Multi-User SSO](#multi-user-sso)):
+
+- **Google Sign-In** — OAuth 2.0 via Passport.js; only enabled when credentials are set in the environment
+- **Per-user project libraries** — each authenticated user owns their own projects
+- **Project sharing** — share any project with other users as **Viewer** or **Editor**; manage collaborators from the Share modal (toolbar)
+- **Real-time co-editing** — multiple users editing the same document see changes applied live via WebSocket (socket.io)
+- **Collaboration presence bar** — shows avatars and names of other users currently in the same document
+- **Admin panel** — manage all registered users (approve, suspend, promote, delete); accessible from the toolbar for admin accounts
+- **Require approval** — optionally require an admin to approve new Google accounts before they can access ScribeFlow
+- **Single-user mode preserved** — if no Google credentials are set, the app runs exactly as before with no login required
+
 ---
 
 ## Project Structure
@@ -122,23 +139,43 @@ Import existing `.scriv` or `.scrivx` projects from Scrivener:
 ```
 scribeflow/
 ├── backend/
-│   ├── server.js               # Express server — startup scan, routes
+│   ├── server.js               # Express + socket.io server — routes, auth, startup scan
 │   ├── package.json
+│   ├── config.js               # Environment-driven configuration (SSO, session secret, etc.)
+│   ├── users.js                # File-backed user store (JSON)
 │   ├── data/
+│   │   ├── projects/           # One JSON file per project
+│   │   ├── sessions/           # Session store (file-based, auto-managed)
 │   │   └── bibles/             # Bible JSON files (populated by fetcher)
 │   │       ├── index.json      # Available translations list
 │   │       ├── kjv.json
 │   │       └── ...
+│   ├── middleware/
+│   │   └── auth.js             # requireAuth middleware (no-op in single-user mode)
 │   ├── scripts/
 │   │   └── fetch-bibles.js     # Bible data fetcher (audit + selective repair)
 │   └── routes/
 │       ├── projects.js         # Project CRUD API
 │       ├── documents.js        # Document save/load API
 │       ├── export.js           # Export endpoints
-│       └── bible.js            # Bible lookup API (served from local data)
+│       ├── bible.js            # Bible lookup API (served from local data)
+│       ├── auth.js             # Google OAuth routes (/auth/google, /auth/logout, /auth/status)
+│       ├── admin.js            # Admin API (user management, SSO toggle)
+│       └── share.js            # Project sharing API
 ├── frontend/
-│   └── public/
-│       └── index.html          # Complete single-file frontend
+│   ├── public/
+│   │   └── js/
+│   │       ├── app.js          # Main application JS (~2 360 lines)
+│   │       └── multiuser.js    # SSO, collaboration, admin/share UI (~460 lines)
+│   └── views/
+│       ├── index.ejs           # Root EJS template (14 lines — assembles partials)
+│       └── partials/
+│           ├── head.ejs        # <head> tag with full CSS
+│           ├── home-screen.ejs # Home / project list screen
+│           ├── overlays.ejs    # Pending-approval, admin, share, and auth overlays
+│           ├── toolbar.ejs     # Main toolbar
+│           ├── app.ejs         # Editor area (binder, format bar, editor, inspector)
+│           └── menus.ejs       # Modals: settings, export, context menu, hot-link UI
 ├── lxc/
 │   ├── install.sh              # Run inside a fresh LXC container
 │   └── create-lxc.sh           # Run on Proxmox host to auto-create LXC
@@ -189,7 +226,7 @@ docker compose run --rm bible-fetcher
 
 | Volume | Mount | Contents |
 |--------|-------|----------|
-| `scribeflow_data` | `/data` | All projects (JSON files) |
+| `scribeflow_data` | `/data` | All projects, user store, session files |
 | `bible_data` | `/app/data/bibles` | Bible translation JSON files |
 
 Both volumes persist independently of the container image. Rebuilding the image does **not** delete either volume.
@@ -260,12 +297,12 @@ ScribeFlow includes a built-in Bible scripture viewer for **Pastoral Sermons** p
 
 | ID | Label | Translation |
 |----|-------|-------------|
-| `en-kjv` | KJV | King James Version (1769) |
-| `en-asv` | ASV | American Standard Version (1901) |
-| `en-web` | WEB | World English Bible (modern, public domain) |
-| `en-bbe` | BBE | Bible in Basic English (1949/1964) |
-| `en-ylt` | YLT | Young's Literal Translation (1898) |
-| `en-darby` | Darby | Darby Translation (1890) |
+| `kjv` | KJV | King James Version (1769) |
+| `asv` | ASV | American Standard Version (1901) |
+| `web` | WEB | World English Bible (modern, public domain) |
+| `bbe` | BBE | Bible in Basic English (1949/1964) |
+| `ylt` | YLT | Young's Literal Translation (1898) |
+| `darby` | Darby | Darby Translation (1890) |
 
 All translations are public domain. Source: [bible-api.com](https://bible-api.com) (Tim Morgan, open source).
 
@@ -328,14 +365,72 @@ ScribeFlow starts normally without Bible data. The Scripture pane displays:
 
 ---
 
+## Multi-User SSO
+
+By default ScribeFlow runs in **single-user mode** — no login, no credentials required. Multi-user mode is enabled by setting Google OAuth environment variables.
+
+### Prerequisites
+
+1. Create a Google Cloud project at [console.cloud.google.com](https://console.cloud.google.com)
+2. Enable the **Google+ API** (or **Google Identity**)
+3. Create an **OAuth 2.0 Client ID** (Web application type)
+4. Set the authorised redirect URI to `https://your-domain/auth/google/callback`
+
+### Docker — enabling SSO
+
+Add the following to `docker-compose.yml` under the `scribeflow` service's `environment:` block:
+
+```yaml
+environment:
+  GOOGLE_CLIENT_ID: your-client-id.apps.googleusercontent.com
+  GOOGLE_CLIENT_SECRET: your-client-secret
+  GOOGLE_CALLBACK_URL: https://your-domain/auth/google/callback
+  SESSION_SECRET: a-long-random-string
+```
+
+Rebuild and restart:
+
+```bash
+docker compose down
+docker compose build --no-cache
+docker compose up -d
+```
+
+The first Google account to sign in automatically becomes the **Administrator**.
+
+### LXC — enabling SSO
+
+Edit the systemd service file (`/etc/systemd/system/scribeflow.service`) to add the same four environment variables under `[Service]`, then:
+
+```bash
+systemctl daemon-reload
+systemctl restart scribeflow
+```
+
+### Admin panel
+
+Accessible from the toolbar (👥 icon, visible to all users when SSO is on). Admins see an additional **Users** tab for:
+- Approving or denying pending accounts
+- Suspending or reactivating active users
+- Promoting users to admin
+
+**Require approval**: in the Admin panel → Multi-User tab, toggle **Require admin approval for new users** to prevent automatic access for all Google accounts.
+
+### Disabling SSO
+
+In the Admin panel → Multi-User tab → Danger Zone → **Disable SSO & Return to Single-User**. All project data and user records are preserved.
+
+---
+
 ## Updating ScribeFlow
 
 ### How data persistence works
 
 | Storage | Location | Survives rebuild? |
 |---------|----------|-------------------|
-| Projects | `scribeflow_data` volume → `/data` | ✓ Yes |
+| Projects | `scribeflow_data` volume → `/data/projects` | ✓ Yes |
 | Bible data | `bible_data` volume → `/app/data/bibles` | ✓ Yes |
+| Sessions | `scribeflow_data` volume → `/data/sessions` | ✓ Yes |
 | LXC projects | `/var/lib/scribeflow` | ✓ Yes |
 
 ### Docker update workflow
@@ -356,20 +451,21 @@ docker compose logs scribeflow | head -40
 
 Expected startup output:
 ```
-════════════════════════════════════════════════════════════
-  ScribeFlow  v1.1
-════════════════════════════════════════════════════════════
+────────────────────────────────────────────────────────────
+  ScribeFlow  v2.1
+────────────────────────────────────────────────────────────
   Port           : 3051
   Data directory : /data
+  Auth           : single-user (no login)
   Projects found : 3
 ────────────────────────────────────────────────────────────
   [OK]       "My Novel" — 24 doc(s), 42,301 words
   [OK]       "Sunday Series" — 12 doc(s), 8,740 words
   [OK]       "Research Notes" — 5 doc(s), 3,200 words
 ────────────────────────────────────────────────────────────
-  Loaded: 3  |  Repaired: 0  |  Skipped (corrupt): 0
+  Loaded: 3  |  Repaired: 0  |  Corrupt: 0
   Bible data     : 6 translation(s) ready
-════════════════════════════════════════════════════════════
+────────────────────────────────────────────────────────────
   Listening on http://0.0.0.0:3051
 ```
 
@@ -387,6 +483,16 @@ pct exec 200 -- bash /tmp/scribeflow/lxc/install.sh
 # Verify
 pct exec 200 -- journalctl -u scribeflow -n 30
 ```
+
+### After updating from v2.0 or earlier
+
+The frontend was split from a single `index.html` into EJS templates and static JS files in v2.1. After pulling the update run:
+
+```bash
+cd backend && npm install   # installs the new 'ejs' dependency
+```
+
+No data migration is needed — all project files remain unchanged.
 
 ### Backup before updating
 
@@ -412,15 +518,29 @@ On every launch the server scans all project files and auto-repairs common issue
 
 ## API Reference
 
+### Auth
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/me` | Current auth state and user object (always available) |
+| GET | `/auth/google` | Initiate Google OAuth sign-in |
+| GET | `/auth/google/callback` | OAuth callback (handled automatically) |
+| GET | `/auth/logout` | Sign out and destroy session |
+| GET | `/auth/status` | SSO enabled flag and current user |
+
 ### Projects
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/projects` | List all projects (includes `docStyle`, `researchType`, word count) |
+| GET | `/api/projects` | List projects visible to the current user |
 | POST | `/api/projects` | Create project |
 | GET | `/api/projects/:id` | Get full project (binder + all documents + settings) |
 | PUT | `/api/projects/:id` | Update project |
 | DELETE | `/api/projects/:id` | Delete project |
+| GET | `/api/projects/:id/share` | Get sharing info (owner, collaborators) |
+| PUT | `/api/projects/:id/share` | Add or update a collaborator |
+| DELETE | `/api/projects/:id/share/:userId` | Remove a collaborator |
+| POST | `/api/projects/:id/share/transfer` | Transfer ownership to another user |
 
 ### Documents
 
@@ -441,6 +561,8 @@ On every launch the server scans all project files and auto-repairs common issue
 | GET | `/api/export/:projectId/html` | Print-ready HTML |
 | GET | `/api/export/:projectId/json` | Full JSON backup |
 
+Add `?removeHotlinks=1` to any export URL to replace hot-link widgets with each link's fallback name.
+
 ### Bible
 
 | Method | Endpoint | Description |
@@ -450,23 +572,42 @@ On every launch the server scans all project files and auto-repairs common issue
 | GET | `/api/bible/search?q=John+3:16&trans=kjv` | Free-text reference lookup with verse range support |
 | GET | `/api/bible/:trans/:book/:chapter` | Fetch a full chapter directly |
 
+### Admin *(admin users only)*
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/admin/status` | SSO status, credential check, current user's role |
+| POST | `/api/admin/enable-sso` | Enable multi-user SSO |
+| POST | `/api/admin/disable-sso` | Disable SSO, return to single-user mode |
+| PUT | `/api/admin/config` | Update admin config (e.g. `requireApproval`) |
+| GET | `/api/admin/users` | List all registered users |
+| POST | `/api/admin/users/:id/approve` | Approve a pending user |
+| POST | `/api/admin/users/:id/suspend` | Suspend an active user |
+| POST | `/api/admin/users/:id/reactivate` | Reactivate a suspended user |
+| DELETE | `/api/admin/users/:id` | Permanently delete a user |
+
 ### System
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/health` | Server status, version, project count, data directory |
+| GET | `/api/health` | Server status, version, project count, SSO state |
 
 ---
 
 ## Data Storage
 
 ```
-/data/projects/
-  <uuid>.json    # One file per project — binder, all documents, settings
+/data/
+  projects/
+    <uuid>.json    # One file per project — binder, all documents, settings
+  sessions/
+    <session>.json # Session files (auto-managed, TTL 30 days)
+  users.json       # Registered user store (only present when SSO has been used)
+  config.json      # App config (ssoEnabled, requireApproval)
 
 /app/data/bibles/
-  index.json     # Available translations
-  kjv.json       # ~4.5 MB each
+  index.json       # Available translations
+  kjv.json         # ~4.5 MB each
   asv.json
   web.json
   bbe.json
@@ -494,6 +635,9 @@ server {
     server_name scribeflow.yourdomain.com;
     location / {
         proxy_pass http://localhost:3051;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -501,13 +645,25 @@ server {
 }
 ```
 
+> The `Upgrade`/`Connection` headers are required for WebSocket (socket.io real-time collaboration) to work through Nginx.
+
 ---
 
 ## Version History
 
 | Version | Summary |
 |---------|---------|
-| **1.1** | Bible fetcher book-name encoding fix (spaces vs hyphens on CDN) |
+| **2.1** | Frontend split — EJS templates + static JS files |
+| **2.0** | Project Settings modal regression fix |
+| **1.9** | Bible fetcher 404/429 handling; SSO/settings bug fixes |
+| **1.8** | Real-time collaboration (socket.io), project sharing, admin panel |
+| **1.7** | Google SSO authentication (optional, single-user default preserved) |
+| **1.6** | Bible fetcher parameterized API — no spaces in URLs |
+| **1.5** | Bible fetcher Cloudflare header fix |
+| **1.4** | Bible fetcher switched to bible-api.com |
+| **1.3** | Bible fetcher self-probing CDN slug detection (superseded by 1.4) |
+| **1.2** | Bible fetcher 403 fix — revert %20 encoding |
+| **1.1** | Hot-link fallback names + export replacement; book name encoding fix |
 | **1.0** | Project type labels on home screen |
 | **0.9** | Bible fetcher audit + selective chapter repair |
 | **0.8** | Bible fetch as separate post-install step; `bible_data` volume |

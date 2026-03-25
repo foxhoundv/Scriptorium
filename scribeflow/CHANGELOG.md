@@ -4,6 +4,30 @@ All notable changes are documented here. Version increments by tenths.
 
 ---
 
+## Version 2.1
+
+### Refactor
+
+**Frontend split — EJS templates + static JS files**
+- `frontend/public/index.html` (~4 400 lines) was a single monolithic file combining all CSS, HTML, and JavaScript. Split into discrete, independently maintainable files.
+- **Option A — Static JS** (`frontend/public/js/`):
+  - `app.js` — main application logic (2 362 lines); previously the first `<script>` block
+  - `multiuser.js` — SSO, collaboration, socket.io, admin/share UI (462 lines); previously the second `<script>` block
+  - Both files served directly by `express.static`; no bundler required
+- **Option B — EJS templates** (`frontend/views/`):
+  - `index.ejs` — 14-line root template that assembles all partials
+  - `partials/head.ejs` — `<head>` with full CSS (934 lines)
+  - `partials/home-screen.ejs` — home/project-list screen
+  - `partials/overlays.ejs` — pending-approval, admin, share, and auth overlays
+  - `partials/toolbar.ejs` — main toolbar
+  - `partials/app.ejs` — editor area (binder, format bar, editor, inspector, status bar)
+  - `partials/menus.ejs` — export menu, context menu, settings modal, hot-link dropdown/popover, export-HL modal
+- **Backend**:
+  - `ejs` added to `backend/package.json` dependencies
+  - `server.js`: EJS view engine configured (`app.set('view engine', 'ejs')` + views path); SPA fallback changed from `res.sendFile` to `res.render('index')`
+  - Run `npm install` inside `backend/` after updating to install EJS
+
+
 ## Version 2.0
 
 ### Bug Fix
@@ -311,6 +335,7 @@ node /opt/scribeflow/backend/scripts/fetch-bibles.js  # fetch Bible data separat
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 2.1 | 2026-03 | Frontend split — EJS templates + static JS files |
 | 2.0 | 2026-03 | Project Settings modal regression fix |
 | 1.9 | 2026-03 | Bible fetcher 404/429 handling; SSO/settings bug fixes |
 | 1.8 | 2026-03 | Real-time collaboration (socket.io), share modal, admin panel |
