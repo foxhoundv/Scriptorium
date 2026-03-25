@@ -4,13 +4,13 @@
  * ═══════════════════════════════════════════════════════════════════════
  *
  * Fetches complete public-domain Bible translations from bible-api.com
- * using its PARAMETERIZED API:
+ * using its standard text API:
  *
- *   https://bible-api.com/data/{translation}/books/{BOOK_ID}/chapters/{n}/verses.json
+ *   https://bible-api.com/{book}+{chapter}?translation={id}
+ *   e.g. https://bible-api.com/genesis+1?translation=kjv
  *
- * Book IDs are 3-letter uppercase codes (GEN, 1SA, SNG, 1CO, REV, etc.)
- * with NO spaces anywhere in the URL path — completely avoids the %20
- * encoding issues that caused HTTP 403 errors in previous versions.
+ * Returns { verses: [{verse, text, ...}] } per chapter request.
+ * The previous /data/ parameterized endpoint returned HTTP 404.
  *
  * On every run:
  *   1. Audits translation files already on disk
@@ -167,11 +167,14 @@ function httpGet(url) {
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-// Build the parameterized chapter URL — no spaces in path, ever.
-// e.g. https://bible-api.com/data/kjv/books/1SA/chapters/1/verses.json
+// Build the standard text-based chapter URL.
+// e.g. https://bible-api.com/genesis+1?translation=kjv
+//      https://bible-api.com/1+samuel+1?translation=kjv
+// Returns { verses: [{verse, text, ...}] } — same structure the rest of
+// the script already expects.
 function chapterUrl(bookSlug, chapter, translationId) {
-  const bookId = BOOK_IDS[bookSlug];
-  return BASE_URL + '/data/' + translationId + '/books/' + bookId + '/chapters/' + chapter + '/verses.json';
+  const bookName = BOOK_NAMES[bookSlug].toLowerCase().replace(/ /g, '+');
+  return BASE_URL + '/' + bookName + '+' + chapter + '?translation=' + translationId;
 }
 
 // ── AUDIT ─────────────────────────────────────────────────────────────────
@@ -330,7 +333,7 @@ async function main() {
   const line = '='.repeat(60);
   console.log('\n' + line);
   console.log('  ScribeFlow Bible Fetcher');
-  console.log('  Source  : bible-api.com (parameterized API, no spaces in URLs)');
+  console.log('  Source  : bible-api.com (text API, book+chapter?translation=id)');
   console.log('  Output  : ' + OUT_DIR);
   console.log('  Books   : ' + BOOKS.length + '  *  Chapters : ' + TOTAL_CHAPTERS);
   console.log(line);
