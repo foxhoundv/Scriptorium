@@ -48,6 +48,13 @@ services:
       - PORT=3051
       - DATA_DIR=/data
       - NODE_ENV=production
+      # ── Google SSO (optional — leave commented out for single-user mode) ──
+      # AUTH_ENABLED=true
+      # GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+      # GOOGLE_CLIENT_SECRET=your-client-secret
+      # GOOGLE_CALLBACK_URL=https://your-domain.com/auth/google/callback
+      # SESSION_SECRET=change-this-to-a-long-random-string
+      # TRUST_PROXY=true  # set if behind a reverse proxy (Nginx, Traefik, etc.)
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3051/api/health"]
       interval: 30s

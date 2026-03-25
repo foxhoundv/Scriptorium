@@ -6,7 +6,9 @@ const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = re
 const { htmlToText } = require('html-to-text');
 
 function getProjectPath(req, projectId) {
-  return path.join(req.app.locals.DATA_DIR, 'projects', `${projectId}.json`);
+  const base = path.join(req.app.locals.DATA_DIR, 'projects');
+  const dir  = req.userId ? path.join(base, req.userId) : base;
+  return path.join(dir, `${projectId}.json`);
 }
 
 // Collect documents in binder order (only those marked includeInCompile)

@@ -5,7 +5,9 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
 function getProjectPath(req, projectId) {
-  return path.join(req.app.locals.DATA_DIR, 'projects', `${projectId}.json`);
+  const base = path.join(req.app.locals.DATA_DIR, 'projects');
+  const dir  = req.userId ? path.join(base, req.userId) : base;
+  return path.join(dir, `${projectId}.json`);
 }
 
 function countWords(html) {

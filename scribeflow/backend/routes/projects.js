@@ -5,7 +5,8 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
 function getProjectsDir(req) {
-  return path.join(req.app.locals.DATA_DIR, 'projects');
+  const base = path.join(req.app.locals.DATA_DIR, 'projects');
+  return req.userId ? path.join(base, req.userId) : base;
 }
 
 function getProjectPath(req, projectId) {
