@@ -4,6 +4,74 @@ All notable changes are documented here. Version increments by tenths.
 
 ---
 
+## Version 2.0
+
+### Bug Fix
+
+**Project Settings modal — regression fix**
+- The Settings modal had stopped appearing after the multi-user additions in v1.7–1.8
+- Stripped all CSS opacity/transition animation from `#settings-overlay` which had been left in a non-visible state
+- Restructured `openSettings()` to set `display: flex` at the very first line before any data-population code, so a JS error in field-filling cannot prevent the overlay from showing
+- Simplified `closeSettings()` to set `display: none` directly with no animation delay
+- `closeSettings()` also explicitly sets `settingsOpen = false` to keep internal state consistent
+
+
+## Version 1.9
+
+### Bug Fix
+
+**Bible fetcher — 404 handling and rate-limit retry**
+- Improved handling of HTTP 404 responses from bible-api.com when a chapter reference is not found in the parameterized API; these are now logged and skipped rather than stored as empty arrays that trigger infinite re-fetch loops
+- Added exponential-backoff retry logic specifically for HTTP 429 (Too Many Requests) responses; the fetcher pauses and retries up to 5 times before marking a chapter as failed
+
+**SSO / Settings — miscellaneous fixes**
+- Corrected the Admin Panel button wiring so it reliably opens the admin overlay
+- Fixed tab-switching logic in the Settings modal that could leave multiple sections active simultaneously
+- Corrected `openSettings._pendingTab` flow so the correct tab is highlighted on open
+
+
+## Version 1.8
+
+### New Features
+
+**Multi-user collaboration — real-time editing with socket.io**
+- Multiple users editing the same document now see each other's changes in real time via WebSocket (socket.io)
+- Users are placed in per-document rooms; joining and leaving is handled automatically on document open/close and project navigation
+- `selectDoc`, `showHome`, and `openProject` are wrapped in the second script block to call socket join/leave at the right lifecycle points
+
+**Project sharing**
+- New **Share** button (toolbar, hidden unless SSO is enabled) opens a share modal
+- Project owner can invite other registered users by email with **Viewer** or **Editor** role
+- Shared-with list shows all current collaborators with their roles; owner can revoke access at any time
+- Backend: new `routes/share.js` with `POST /:id/share` and `DELETE /:id/share/:userId` endpoints; access-control helpers updated across all routes
+
+**Admin panel**
+- New admin overlay (gear icon, visible to admin users only) for managing registered users
+- Lists all users with their provider, email, and admin status
+- Admin can promote/demote other users and delete accounts
+- Backend: new `routes/admin.js` with full CRUD on the user store; protected by admin-only middleware
+
+**User management backend**
+- New `backend/users.js` — file-backed user store (JSON) with helpers for create, find, list, update, delete
+- New `backend/config.js` — centralises environment-driven configuration (SSO credentials, session secret, data directory, admin email)
+
+
+## Version 1.7
+
+### New Features
+
+**Google SSO authentication**
+- Optional Google OAuth 2.0 sign-in via Passport.js (`passport-google-oauth20`)
+- Disabled by default; enabled by setting `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `SESSION_SECRET` environment variables (or Docker secrets)
+- When enabled: unauthenticated requests to the API redirect to `/auth/google`; the frontend shows an auth overlay for sign-in
+- When disabled: application runs in single-user mode with no login required (all existing behaviour preserved)
+- New `backend/middleware/auth.js` — attaches `req.userId` / `req.isAdmin` from session; short-circuits to `next()` when SSO is off
+- New `backend/routes/auth.js` — `/auth/google`, `/auth/google/callback`, `/auth/logout`, `/auth/status` endpoints
+- `docker-compose.yml` updated with optional SSO environment variable stubs
+- Frontend: auth overlay with "Sign in with Google" button; pending-approval screen for accounts awaiting admin activation
+- Session persistence via `session-file-store` (survives server restarts)
+
+
 ## Version 1.6
 
 ### Bug Fix
@@ -243,13 +311,16 @@ node /opt/scribeflow/backend/scripts/fetch-bibles.js  # fetch Bible data separat
 
 | Version | Date | Summary |
 |---------|------|---------|
-| 1.1 | 2026-03 | Hot-link fallback names + export replacement |
+| 2.0 | 2026-03 | Project Settings modal regression fix |
+| 1.9 | 2026-03 | Bible fetcher 404/429 handling; SSO/settings bug fixes |
+| 1.8 | 2026-03 | Real-time collaboration (socket.io), share modal, admin panel |
+| 1.7 | 2026-03 | Google SSO authentication (optional, single-user default preserved) |
 | 1.6 | 2026-03 | Bible fetcher parameterized API, no spaces in URLs |
 | 1.5 | 2026-03 | Bible fetcher Cloudflare header fix |
 | 1.4 | 2026-03 | Bible fetcher switched to bible-api.com |
-| 1.3 | 2026-03 | Bible fetcher self-probing CDN slug detection (superseded) |
+| 1.3 | 2026-03 | Bible fetcher self-probing CDN slug detection (superseded by 1.4) |
 | 1.2 | 2026-03 | Bible fetcher 403 fix — revert %20 encoding |
-| 1.1 | 2026-03 | Bible fetcher book name encoding fix (reverted) |
+| 1.1 | 2026-03 | Hot-link fallback names + export replacement; book name encoding fix |
 | 1.0 | 2026-03 | Project type labels on home screen |
 | 0.9 | 2026-03 | Bible fetcher audit + selective repair |
 | 0.8 | 2026-03 | Bible fetch as separate post-install step |
