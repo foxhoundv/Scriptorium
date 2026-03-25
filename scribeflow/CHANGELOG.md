@@ -4,6 +4,32 @@ All notable changes are documented here. Version increments by tenths.
 
 ---
 
+## Version 0.8
+
+### Changes
+
+**Bible data — separate post-install step**
+- Bible translations are no longer downloaded at Docker image build time
+- A dedicated `bible-fetcher` service in `docker-compose.yml` handles the download on demand
+- `bible_data` is now a named Docker volume shared between `scribeflow` (reads) and `bible-fetcher` (writes), so data survives image rebuilds without re-fetching
+
+**Docker workflow:**
+```
+docker compose up -d                   # start ScribeFlow normally
+docker compose run --rm bible-fetcher  # fetch Bible data (run once)
+```
+
+**LXC workflow:**
+```
+bash lxc/install.sh                               # install/update ScribeFlow
+node /opt/scribeflow/backend/scripts/fetch-bibles.js  # fetch Bible data separately
+```
+
+- Both methods are safe to re-run — translations already present are skipped
+- ScribeFlow starts and runs normally without Bible data; the Scripture pane shows a prompt until data is available
+- To force a full re-fetch: remove the `bible_data` volume (`docker volume rm <project>_bible_data`) then re-run the fetcher
+
+
 ## Version 0.7
 
 ### Changes
@@ -90,6 +116,7 @@ All notable changes are documented here. Version increments by tenths.
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 0.8 | 2026-03 | Bible fetch as separate post-install step |
 | 0.7 | 2026-03 | Bible dropdown navigation, 50% resize cap |
 | 0.6 | 2026-03 | Offline Bible library, local API, all 6 translations bundled |
 | 0.5 | 2026-03 | Research/Pastoral Sermons, Bible pane, version tracking, HL auto-register |

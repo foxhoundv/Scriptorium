@@ -122,14 +122,20 @@ cd "$INSTALL_DIR/backend"
 npm install --production
 
 # ── BIBLE DATA ────────────────────────────────────────────────────────────
+# Bible data is NOT fetched automatically during install.
+# Run the following command separately after ScribeFlow is running:
+#
+#   node /opt/scribeflow/backend/scripts/fetch-bibles.js
+#
+# This downloads ~25 MB of public-domain translations (~10–20 min).
+# Safe to re-run — already-present translations are skipped.
 BIBLE_INDEX="$INSTALL_DIR/backend/data/bibles/index.json"
+mkdir -p "$INSTALL_DIR/backend/data/bibles"
 if [ -f "$BIBLE_INDEX" ]; then
-  BIBLE_COUNT=$(python3 -c "import json,sys; print(len(json.load(open('$BIBLE_INDEX'))))" 2>/dev/null || echo "?")
-  log "Bible data already present (${BIBLE_COUNT} translation(s)) — skipping fetch."
+  BIBLE_COUNT=$(node -e "try{const i=require('$BIBLE_INDEX');console.log(i.length)}catch(e){console.log('?')}" 2>/dev/null || echo "?")
+  log "Bible data already present (${BIBLE_COUNT} translation(s))."
 else
-  log "Downloading Bible data (public domain translations)…"
-  log "This fetches ~25 MB once and is required for the Scripture pane."
-  node "$INSTALL_DIR/backend/scripts/fetch-bibles.js" || warn "Bible fetch failed — run manually: node $INSTALL_DIR/backend/scripts/fetch-bibles.js"
+  log "Bible data not yet downloaded (Scripture pane will prompt until fetched)."
 fi
 
 # ── PERMISSIONS ──────────────────────────────────────────────────────────
@@ -206,5 +212,8 @@ echo -e "${GREEN}║${NC}  Data:     ${DATA_DIR}"
 echo -e "${GREEN}║${NC}  Projects: ${EXISTING_PROJECTS} existing project(s) preserved"
 echo -e "${GREEN}║${NC}  Logs:     journalctl -u scribeflow -f"
 echo -e "${GREEN}║${NC}  Restart:  systemctl restart scribeflow"
+echo -e "${GREEN}║${NC}"
+echo -e "${GREEN}║${NC}  Bible data — run once to enable Scripture pane:"
+echo -e "${GREEN}║${NC}  ${BLUE}node ${INSTALL_DIR}/backend/scripts/fetch-bibles.js${NC}"
 echo -e "${GREEN}╚════════════════════════════════════════════════════╝${NC}"
 echo ""

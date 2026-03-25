@@ -2,31 +2,39 @@ version: '3.8'
 
 # ── ScribeFlow Docker Compose ─────────────────────────────────────────────
 #
-# HOW DATA PERSISTS ACROSS UPDATES:
-#   Projects are stored in a named Docker volume (scribeflow_data → /data).
-#   Volumes are NOT removed when you stop, remove, or rebuild the container.
-#   Only `docker compose down -v` or `docker volume rm scribeflow_data`
-#   would delete your data.
+# SERVICES:
+#   scribeflow     — the main app (always running)
+#   bible-fetcher  — one-shot Bible downloader (run manually after build)
 #
-# UPDATE WORKFLOW (safe — data survives every step):
-#   docker compose down          # stop + remove container
-#   docker compose build --no-cache   # rebuild image with latest code
-#   docker compose up -d         # start new container — projects reload automatically
+# QUICK START:
+#   docker compose up -d                      # start ScribeFlow
+#   docker compose run --rm bible-fetcher     # fetch Bible data (once)
 #
-# BACKUP your volume before major updates:
+# The fetcher downloads ~25 MB of public-domain translations into a
+# persistent volume (bible_data). ScribeFlow reads from that same volume
+# so Bible data survives image rebuilds without re-fetching.
+# The fetcher is safe to re-run — present translations are skipped.
+#
+# UPDATE WORKFLOW:
+#   docker compose down
+#   docker compose build --no-cache
+#   docker compose up -d
+#   # Bible data already in bible_data volume — no need to re-fetch.
+#
+# FORCE RE-FETCH (e.g. to add a translation):
+#   docker volume rm scribeflow_bible_data
+#   docker compose run --rm bible-fetcher
+#
+# BACKUP projects:
 #   docker run --rm \
-#     -v scribeflow_data:/data \
+#     -v scribeflow_scribeflow_data:/data \
 #     -v $(pwd):/backup \
 #     alpine tar -czf /backup/scribeflow-backup-$(date +%Y%m%d).tar.gz /data
-#
-# RESTORE from backup:
-#   docker run --rm \
-#     -v scribeflow_data:/data \
-#     -v $(pwd):/backup \
-#     alpine tar -xzf /backup/scribeflow-backup-YYYYMMDD.tar.gz -C /
 # ─────────────────────────────────────────────────────────────────────────
 
 services:
+
+  # ── Main application ──────────────────────────────────────────────────
   scribeflow:
     build: .
     container_name: scribeflow
@@ -34,9 +42,8 @@ services:
     ports:
       - "${PORT:-3051}:3051"
     volumes:
-      # Named volume — persists independently of the container lifecycle.
-      # Rebuild the image as many times as you like; this volume stays.
       - scribeflow_data:/data
+      - bible_data:/app/data/bibles   # reads Bible JSON written by fetcher
     environment:
       - PORT=3051
       - DATA_DIR=/data
@@ -48,12 +55,34 @@ services:
       retries: 3
       start_period: 15s
 
+  # ── Bible data fetcher ────────────────────────────────────────────────
+  # Run once after first build:  docker compose run --rm bible-fetcher
+  # Uses the same image — no extra build step.
+  # Writes JSON files into bible_data volume, which scribeflow also mounts.
+  bible-fetcher:
+    build: .
+    container_name: scribeflow-bible-fetcher
+    profiles:
+      - tools
+    volumes:
+      - bible_data:/app/data/bibles   # writes here; scribeflow reads here
+    environment:
+      - NODE_ENV=production
+    command: ["node", "scripts/fetch-bibles.js"]
+    restart: "no"
+
 volumes:
   scribeflow_data:
     driver: local
-    # To use an explicit host path instead of a Docker-managed volume,
-    # uncomment and set the path below:
+    # Uncomment to bind to a host path (NAS / ZFS dataset):
     # driver_opts:
     #   type: none
     #   o: bind
     #   device: /mnt/your-nas/scribeflow-data
+
+  bible_data:
+    driver: local
+    # Holds the Bible JSON files (~25 MB).
+    # Shared between scribeflow (read) and bible-fetcher (write).
+    # Persists across image rebuilds — only removed with:
+    #   docker compose down -v   or   docker volume rm scribeflow_bible_data
