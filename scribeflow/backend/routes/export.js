@@ -45,24 +45,69 @@ function resolveHotlinks(html, hlPages, removeHotlinks) {
     hlMap[p.docId] = { name: p.name || '', fallbackName: p.fallbackName || '' };
   });
 
-  // Replace every hl-widget span with the appropriate plain text.
-  // We match the outer span and discard all inner markup.
-  return html.replace(
-    /<span\s+class="hl-widget"[^>]*data-hl-doc="([^"]*)"[^>]*data-hl-name="([^"]*)"[^>]*>[\s\S]*?<\/span>/gi,
-    (match, docId, encodedName) => {
-      // Decode HTML entities in the name attribute
-      const name = encodedName
-        .replace(/&amp;/g, '&').replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+  // We cannot use a simple regex with lazy matching because hl-widget spans
+  // contain nested child spans (hl-w-type, hl-w-name).  A lazy [\s\S]*?<\/span>
+  // stops at the FIRST inner </span>, leaving residual HTML in the output.
+  // Instead, walk the string and use depth-counting to find the true closing tag.
+  let result = '';
+  let pos    = 0;
 
-      if (removeHotlinks) {
-        const entry = hlMap[docId];
-        const fallback = entry && entry.fallbackName ? entry.fallbackName : (entry ? entry.name : name);
-        return fallback || name;
-      }
-      return name;
+  while (pos < html.length) {
+    const spanStart = html.indexOf('<span', pos);
+    if (spanStart === -1) { result += html.slice(pos); break; }
+
+    // Read the full opening tag to check if it's an hl-widget
+    const tagEnd = html.indexOf('>', spanStart);
+    if (tagEnd === -1) { result += html.slice(pos); break; }
+    const openTag = html.slice(spanStart, tagEnd + 1);
+
+    if (!openTag.includes('hl-widget')) {
+      // Not a widget — advance past this '<' and keep searching
+      result += html.slice(pos, spanStart + 1);
+      pos = spanStart + 1;
+      continue;
     }
-  );
+
+    // Append content before this widget
+    result += html.slice(pos, spanStart);
+
+    // Find the matching </span> using nesting depth
+    let depth = 1;
+    let cur   = tagEnd + 1;
+    while (cur < html.length && depth > 0) {
+      const nextOpen  = html.indexOf('<span',  cur);
+      const nextClose = html.indexOf('</span>', cur);
+      if (nextClose === -1) { cur = html.length; break; }
+      if (nextOpen !== -1 && nextOpen < nextClose) {
+        depth++;
+        cur = nextOpen + 5;   // skip past '<span'
+      } else {
+        depth--;
+        cur = nextClose + 7;  // skip past '</span>'
+      }
+    }
+
+    // Extract docId and name from the opening tag attributes
+    const docIdM  = openTag.match(/data-hl-doc="([^"]*)"/i);
+    const nameM   = openTag.match(/data-hl-name="([^"]*)"/i);
+    const docId   = docIdM ? docIdM[1] : '';
+    const rawName = nameM  ? nameM[1]  : '';
+    const name    = rawName
+      .replace(/&amp;/g, '&').replace(/&lt;/g,  '<')
+      .replace(/&gt;/g,  '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+
+    if (removeHotlinks) {
+      const entry    = hlMap[docId];
+      const fallback = entry?.fallbackName || entry?.name || name;
+      result += fallback;
+    } else {
+      result += name;
+    }
+
+    pos = cur;
+  }
+
+  return result;
 }
 
 function htmlToPlainText(html) {
