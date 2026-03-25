@@ -1,6 +1,6 @@
 # ScribeFlow — Self-Hosted Writing Workspace
 
-> Current version: **v2.2**
+> Current version: **v2.3**
 > A Scrivener-inspired writing application designed to run entirely on your own server via Docker or Proxmox LXC. No subscriptions, no cloud, no external dependencies at runtime.
 
 ---
@@ -452,7 +452,7 @@ docker compose logs scribeflow | head -40
 Expected startup output:
 ```
 ────────────────────────────────────────────────────────────
-  ScribeFlow  v2.2
+  ScribeFlow  v2.3
 ────────────────────────────────────────────────────────────
   Port           : 3051
   Data directory : /data
@@ -653,6 +653,7 @@ server {
 
 | Version | Summary |
 |---------|---------|
+| **2.3** | Scripture pane overflow fix; daily word goal now counts pre-goal writing correctly |
 | **2.2** | Remove Google SSO; local username/password auth; SQLite database for projects + users |
 | **2.1** | Frontend split — EJS templates + static JS files |
 | **2.0** | Project Settings modal regression fix |

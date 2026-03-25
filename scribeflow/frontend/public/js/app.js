@@ -1,5 +1,5 @@
 ﻿// ── VERSION ──
-const APP_VERSION = '2.2';
+const APP_VERSION = '2.3';
 
 const API = '';
 let currentProject = null;
@@ -1601,6 +1601,17 @@ saveCurrentDoc = async function() {
       currentProject.settings = currentProject.settings || {};
       currentProject.settings.dailyLog = currentProject.settings.dailyLog || {};
       currentProject.settings.dailyLog[todayKey] = (currentProject.settings.dailyLog[todayKey] || 0) + diff;
+      // Persist dailyLog so it's available even if settings are saved later
+      fetch(`${API}/api/projects/${currentProject.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: currentProject.title,
+          description: currentProject.description,
+          settings: currentProject.settings,
+          binder: currentProject.binder
+        })
+      }).catch(() => {});
     }
   }
 };

@@ -4,6 +4,22 @@ All notable changes are documented here. Version increments by tenths.
 
 ---
 
+## Version 2.3
+
+### Bug Fixes
+
+**Scripture pane overflow on initial load (Pastoral Sermons)**
+- When a large chapter was loaded for the first time, the scripture pane would expand to fill the entire viewport and could not be resized or scrolled.
+- Added `max-height: 50%` CSS rule to `#editor-wrap.sermon-split #scripture-pane` so the cap is enforced before any drag interaction.
+- Added `clampScripturePane()` JS call inside `renderScriptureContent()` as a safety net to enforce the cap immediately after content is injected into the DOM.
+
+**Goals tab — pre-existing words not counted in daily percentage**
+- Words written before a daily word goal was created and saved were not reflected in the daily progress percentage.
+- Root cause: the daily word log (`dailyLog`) was updated in memory on each document save but was only persisted to the server when project settings were explicitly saved. If the page was reloaded before goals were set, that day's writing was lost from the log.
+- Fixed by firing a background project settings save immediately after `dailyLog` is updated in the `saveCurrentDoc` wrapper. Daily word progress is now always persisted to the server as writing occurs, independent of the settings save.
+
+---
+
 ## Version 2.2
 
 ### Rewrite — Auth, Database, and Multi-User
