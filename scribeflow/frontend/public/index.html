@@ -614,6 +614,94 @@
   .qa-create-btn:hover { background: var(--accent2); }
   .qa-create-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
+
+  /* ── RESEARCH TYPE TAB ── */
+  .rtype-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 8px; }
+  .rtype-card {
+    border: 2px solid var(--border); border-radius: 10px; padding: 20px 16px;
+    cursor: pointer; transition: all 0.15s; text-align: center; background: var(--bg2);
+    position: relative;
+  }
+  .rtype-card:hover { border-color: var(--accent); background: var(--bg3); }
+  .rtype-card.selected { border-color: var(--accent); background: rgba(181,84,26,0.07); }
+  .rtype-card .rt-icon { font-size: 32px; margin-bottom: 10px; }
+  .rtype-card .rt-name { font-family: 'Lora', serif; font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 5px; }
+  .rtype-card .rt-desc { font-family: 'Crimson Pro', serif; font-size: 12px; color: var(--text3); line-height: 1.45; }
+  .rtype-card .rt-badge {
+    position: absolute; top: 8px; right: 8px; font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; padding: 2px 6px; border-radius: 4px; background: var(--accent); color: #fff;
+  }
+  .rtype-notice {
+    background: rgba(58,95,138,0.08); border: 1px solid rgba(58,95,138,0.2); border-radius: 8px;
+    padding: 10px 14px; font-family: 'Crimson Pro', serif; font-style: italic;
+    font-size: 13px; color: var(--text3); margin-top: 14px; display: none;
+  }
+  .rtype-notice.show { display: block; }
+
+  /* ── SCRIPTURE PANE ── */
+  #scripture-pane {
+    display: none; flex-direction: column; border-bottom: 2px solid var(--accent);
+    background: var(--bg2); flex-shrink: 0; min-height: 180px;
+    transition: height 0.2s;
+  }
+  #scripture-pane.active { display: flex; }
+  body.distraction-free #scripture-pane { display: none !important; }
+  #scripture-header {
+    display: flex; align-items: center; gap: 10px; padding: 6px 16px;
+    border-bottom: 1px solid var(--border); background: var(--bg3); flex-shrink: 0;
+  }
+  #scripture-label {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--text3); flex-shrink: 0;
+  }
+  #bible-version-select {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+    padding: 3px 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--text); outline: none; cursor: pointer; min-width: 80px;
+  }
+  #bible-version-select:focus { border-color: var(--accent); }
+  #bible-ref-input {
+    flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+    padding: 3px 10px; font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    color: var(--text); outline: none; max-width: 220px;
+  }
+  #bible-ref-input:focus { border-color: var(--accent); }
+  #bible-ref-input::placeholder { color: var(--text3); }
+  #bible-lookup-btn {
+    background: var(--accent); border: none; border-radius: 4px; padding: 4px 12px;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #fff;
+    cursor: pointer; transition: background 0.15s; flex-shrink: 0;
+  }
+  #bible-lookup-btn:hover { background: var(--accent2); }
+  #bible-lookup-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  #scripture-resize-handle {
+    height: 5px; cursor: row-resize; background: transparent; flex-shrink: 0;
+    position: relative; z-index: 5; transition: background 0.15s;
+  }
+  #scripture-resize-handle:hover, #scripture-resize-handle.dragging { background: var(--accent); }
+  #scripture-content {
+    flex: 1; overflow-y: auto; padding: 14px 20px; font-family: 'Crimson Pro', serif;
+    font-size: 15px; line-height: 1.8; color: var(--text2);
+  }
+  #scripture-content::-webkit-scrollbar { width: 4px; }
+  #scripture-content::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+  .scripture-verse { margin-bottom: 6px; }
+  .scripture-verse-num {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--accent);
+    font-weight: 600; vertical-align: super; margin-right: 3px;
+  }
+  .scripture-book-title {
+    font-family: 'Lora', serif; font-size: 14px; font-weight: 700; color: var(--text);
+    margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border);
+  }
+  .scripture-loading { color: var(--text3); font-style: italic; font-size: 14px; }
+  .scripture-error { color: #c0392b; font-size: 13px; font-family: 'JetBrains Mono', monospace; }
+
+  /* Split editor: when scripture pane is active, editor-wrap becomes column flex */
+  #editor-wrap.sermon-split { flex-direction: column; }
+  #editor-wrap.sermon-split #editor-scroll { flex: 1; min-height: 0; }
+
+
   /* SCROLLBAR GLOBAL */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -654,7 +742,7 @@
 
 <!-- MAIN APP -->
 <div id="toolbar">
-  <span class="tb-logo">ScribeFlow</span>
+  <span class="tb-logo">ScribeFlow</span><span id="tb-version" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--sidebar-muted);margin-left:-8px;margin-top:2px;align-self:flex-end;padding-bottom:4px;"></span>
   <div class="tb-sep"></div>
   <button class="tb-btn" id="btn-home" title="Projects">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -734,6 +822,26 @@
     <div id="content-area">
       <!-- EDITOR -->
       <div id="editor-wrap">
+        <!-- SCRIPTURE PANE (only shown for Pastoral Sermons research type) -->
+        <div id="scripture-pane">
+          <div id="scripture-header">
+            <span id="scripture-label">Scripture</span>
+            <select id="bible-version-select">
+              <option value="kjv">KJV</option>
+              <option value="web">WEB</option>
+              <option value="bbe">BBE</option>
+              <option value="asv">ASV</option>
+              <option value="darby">Darby</option>
+              <option value="ylt">YLT</option>
+            </select>
+            <input id="bible-ref-input" type="text" placeholder="e.g. John 3:16 or Romans 8:1-8" />
+            <button id="bible-lookup-btn">Look Up</button>
+          </div>
+          <div id="scripture-content">
+            <div class="scripture-loading">Enter a scripture reference above (e.g. <em>John 3:16</em>, <em>Psalm 23</em>, <em>Romans 8:1-8</em>) and press Look Up.</div>
+          </div>
+          <div id="scripture-resize-handle"></div>
+        </div>
         <div id="editor-title-wrap">
           <input id="doc-title-input" type="text" placeholder="Document title…" />
         </div>
@@ -891,6 +999,7 @@
         <div class="sn-item" data-section="characters"><span class="sn-icon">👤</span> Characters</div>
         <div class="sn-item" data-section="places"><span class="sn-icon">📍</span> Places</div>
         <div class="sn-item" data-section="hotlinks"><span class="sn-icon">🔗</span> Hot-Links</div>
+        <div class="sn-item" id="sn-research-type" data-section="researchtype" style="display:none;"><span class="sn-icon">🔬</span> Research Type</div>
       </div>
       <div id="settings-content">
 
@@ -983,6 +1092,27 @@
           <button class="qa-create-btn" id="place-create-btn" disabled>Create Place Pages</button>
         </div>
 
+        <!-- RESEARCH TYPE SECTION (only shown when docStyle === 'research') -->
+        <div class="settings-section" id="section-researchtype">
+          <h3>Research Type</h3>
+          <p class="section-desc">Choose the kind of research this project supports. This further customises the layout and tools available to you.</p>
+          <div class="rtype-grid" id="rtype-grid">
+            <div class="rtype-card" data-rtype="academics">
+              <div class="rt-icon">🎓</div>
+              <div class="rt-name">Academics</div>
+              <div class="rt-desc">Standard research layout — outline, sources, footnotes, and bibliography tools.</div>
+            </div>
+            <div class="rtype-card" data-rtype="pastoral">
+              <div class="rt-icon">✝️</div>
+              <div class="rt-name">Pastoral Sermons</div>
+              <div class="rt-desc">Sermon preparation layout — adds a live Bible scripture pane to the editor for easy reference while writing.</div>
+            </div>
+          </div>
+          <div class="rtype-notice" id="rtype-notice">
+            ℹ️ Changing the Research Type will update the editor layout immediately after saving.
+          </div>
+        </div>
+
         <!-- HOT-LINKS SECTION -->
         <div class="settings-section" id="section-hotlinks">
           <h3>Hot-Links</h3>
@@ -1052,6 +1182,9 @@
 </div>
 
 <script>
+// ── VERSION ──
+const APP_VERSION = '0.5';
+
 const API = '';
 let currentProject = null;
 let currentDocId = null;
@@ -1184,6 +1317,8 @@ async function openProject(id) {
   renderCorkboard();
   updateProjectWordCount();
   updateStatusBar();
+  applyProjectLayout();
+  scriptureInitialized = false; // reset so resize handles rebind for new project
   // Open first doc
   const firstDoc = findFirstDoc(currentProject.binder);
   if (firstDoc) selectDoc(firstDoc.id);
@@ -2051,6 +2186,8 @@ function openSettings() {
   renderHlPagesList();
   populateHlDocPicker();
   renderStyleGrid();
+  renderResearchTypeTab();
+  showResearchTypeNavItem();
   initQuickAddList('char-list',  'char-summary',  'char-create-btn',  'Character');
   initQuickAddList('place-list', 'place-summary', 'place-create-btn', 'Place');
 
@@ -2148,6 +2285,11 @@ async function saveSettings() {
     docStyle: chosenStyle,
   };
 
+  // Read Research Type selection
+  const selectedRTypeEl = document.querySelector('#rtype-grid .rtype-card.selected');
+  const chosenResearchType = selectedRTypeEl ? selectedRTypeEl.dataset.rtype : (s.researchType || null);
+  currentProject.settings.researchType = chosenResearchType;
+
   // Apply binder structure if this is the first time a style is set
   if (isNewStyle) applyDocStyleBinder(chosenStyle);
   currentProject.title = document.getElementById('settings-title-input').value.trim() || currentProject.title;
@@ -2165,6 +2307,8 @@ async function saveSettings() {
   closeSettings();
   updateProjectWordCount();
   updateStatusBar();
+  applyProjectLayout();
+  showResearchTypeNavItem();
 }
 
 // Settings listeners are bound in initSettingsListeners() called after the
@@ -2728,6 +2872,13 @@ const DOC_STYLES = [
     icon: '🗒️',
     desc: 'Single folder, no preset structure',
     folders: ['Documents', 'Trash']
+  },
+  {
+    id: 'research',
+    name: 'Research',
+    icon: '🔬',
+    desc: 'Topics, Sources, Notes, References folders — choose Research Type after saving',
+    folders: ['Topics', 'Sources', 'Notes', 'References', 'Trash']
   }
 ];
 
@@ -2947,8 +3098,178 @@ function findFolderByTitle(node, title) {
   return null;
 }
 
+
+// ── RESEARCH TYPE ──────────────────────────────────────────────────────
+
+function renderResearchTypeTab() {
+  const s = currentProject ? (currentProject.settings || {}) : {};
+  const chosen = s.researchType || null;
+  const grid = document.getElementById('rtype-grid');
+  if (!grid) return;
+
+  // Mark selected card
+  grid.querySelectorAll('.rtype-card').forEach(card => {
+    const isSelected = card.dataset.rtype === chosen;
+    card.classList.toggle('selected', isSelected);
+    // Remove stale badge
+    const old = card.querySelector('.rt-badge');
+    if (old) old.remove();
+    if (isSelected) {
+      const badge = document.createElement('span');
+      badge.className = 'rt-badge'; badge.textContent = 'Active';
+      card.appendChild(badge);
+    }
+    // Bind click
+    card.onclick = () => {
+      grid.querySelectorAll('.rtype-card').forEach(c => {
+        c.classList.remove('selected');
+        const b = c.querySelector('.rt-badge'); if (b) b.remove();
+      });
+      card.classList.add('selected');
+      const badge = document.createElement('span');
+      badge.className = 'rt-badge'; badge.textContent = 'Active';
+      card.appendChild(badge);
+      document.getElementById('rtype-notice').classList.add('show');
+    };
+  });
+}
+
+function showResearchTypeNavItem() {
+  const s = currentProject ? (currentProject.settings || {}) : {};
+  const navItem = document.getElementById('sn-research-type');
+  if (navItem) {
+    navItem.style.display = s.docStyle === 'research' ? '' : 'none';
+  }
+}
+
+// ── PROJECT LAYOUT ──────────────────────────────────────────────────────
+// Called on openProject and after saveSettings to apply the correct UI layout
+
+function applyProjectLayout() {
+  if (!currentProject) return;
+  const s = currentProject.settings || {};
+  const isPastoral = s.docStyle === 'research' && s.researchType === 'pastoral';
+  const pane = document.getElementById('scripture-pane');
+  const editorWrap = document.getElementById('editor-wrap');
+  if (isPastoral) {
+    pane.classList.add('active');
+    editorWrap.classList.add('sermon-split');
+    initScripturePane();
+  } else {
+    pane.classList.remove('active');
+    editorWrap.classList.remove('sermon-split');
+  }
+}
+
+// ── SCRIPTURE PANE ──────────────────────────────────────────────────────
+let scriptureInitialized = false;
+
+function initScripturePane() {
+  if (scriptureInitialized) return;
+  scriptureInitialized = true;
+
+  // Bible version change reruns lookup if there's a current ref
+  document.getElementById('bible-version-select').addEventListener('change', () => {
+    const ref = document.getElementById('bible-ref-input').value.trim();
+    if (ref) lookupScripture(ref);
+  });
+
+  document.getElementById('bible-lookup-btn').addEventListener('click', () => {
+    const ref = document.getElementById('bible-ref-input').value.trim();
+    if (ref) lookupScripture(ref);
+  });
+
+  document.getElementById('bible-ref-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const ref = document.getElementById('bible-ref-input').value.trim();
+      if (ref) lookupScripture(ref);
+    }
+  });
+
+  // Resizable scripture pane (row-resize handle)
+  initScriptureResize();
+}
+
+async function lookupScripture(ref) {
+  const version = document.getElementById('bible-version-select').value;
+  const contentEl = document.getElementById('scripture-content');
+  const btn = document.getElementById('bible-lookup-btn');
+
+  contentEl.innerHTML = '<div class="scripture-loading">Loading…</div>';
+  btn.disabled = true;
+
+  try {
+    // Use bible-api.com — free, no key required, CORS-friendly
+    const encoded = encodeURIComponent(ref);
+    const url = `https://bible-api.com/${encoded}?translation=${version}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    if (data.error) throw new Error(data.error);
+
+    // Build display
+    let html = `<div class="scripture-book-title">${escHtml(data.reference)}</div>`;
+    if (data.verses && data.verses.length > 0) {
+      html += data.verses.map(v =>
+        `<div class="scripture-verse"><span class="scripture-verse-num">${v.verse}</span>${escHtml(v.text.trim())}</div>`
+      ).join('');
+    } else if (data.text) {
+      html += `<div class="scripture-verse">${escHtml(data.text)}</div>`;
+    }
+    contentEl.innerHTML = html;
+  } catch (err) {
+    contentEl.innerHTML = `<div class="scripture-error">Could not load "${escHtml(ref)}" — ${escHtml(err.message)}.<br>Try a format like: <em>John 3:16</em>, <em>Psalm 23</em>, <em>Romans 8:1-8</em></div>`;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function initScriptureResize() {
+  const handle = document.getElementById('scripture-resize-handle');
+  const pane   = document.getElementById('scripture-pane');
+  if (!handle || !pane) return;
+
+  let dragging = false, startY = 0, startH = 0;
+
+  handle.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    dragging = true; startY = e.clientY; startH = pane.offsetHeight;
+    handle.classList.add('dragging');
+    document.body.style.cursor = 'row-resize';
+    document.body.style.userSelect = 'none';
+  });
+  handle.addEventListener('touchstart', (e) => {
+    dragging = true; startY = e.touches[0].clientY; startH = pane.offsetHeight;
+  }, { passive: true });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const newH = Math.min(600, Math.max(120, startH + (e.clientY - startY)));
+    pane.style.height = newH + 'px';
+    pane.style.flex = 'none';
+  });
+  document.addEventListener('touchmove', (e) => {
+    if (!dragging) return;
+    const newH = Math.min(600, Math.max(120, startH + (e.touches[0].clientY - startY)));
+    pane.style.height = newH + 'px';
+    pane.style.flex = 'none';
+  }, { passive: true });
+
+  const stopDrag = () => {
+    if (!dragging) return;
+    dragging = false;
+    handle.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  };
+  document.addEventListener('mouseup', stopDrag);
+  document.addEventListener('touchend', stopDrag);
+}
+
 // ── INIT ──
 initSettingsListeners();
+document.getElementById('tb-version').textContent = 'v' + APP_VERSION;
 showHome();
 </script>
 </body>
