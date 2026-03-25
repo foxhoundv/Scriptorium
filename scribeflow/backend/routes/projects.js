@@ -100,13 +100,16 @@ router.get('/', async (req, res) => {
     for (const file of files) {
       if (file.endsWith('.json')) {
         const data = await fs.readJson(path.join(dir, file));
+        const settings = data.settings || {};
         projects.push({
           id: data.id,
           title: data.title,
           description: data.description,
           createdAt: data.createdAt,
           updatedAt: data.updatedAt,
-          wordCount: Object.values(data.documents || {}).reduce((sum, doc) => sum + (doc.wordCount || 0), 0)
+          wordCount: Object.values(data.documents || {}).reduce((sum, doc) => sum + (doc.wordCount || 0), 0),
+          docStyle: settings.docStyle || null,
+          researchType: settings.researchType || null,
         });
       }
     }

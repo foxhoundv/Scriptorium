@@ -4,6 +4,52 @@ All notable changes are documented here. Version increments by tenths.
 
 ---
 
+## Version 1.1
+
+### New Features
+
+**Hot-links — "Name upon removal" field**
+- Each hot-link entry now has a **Name upon removal** text field
+- When adding a hot-link manually, type the fallback text in the new input next to the Add button (e.g. add "Matthew Triton" → fallback "Matt")
+- When characters/places are created from the Characters/Places settings tabs, the fallback defaults to the full name and can be edited in the Hot-Links tab afterwards
+- In the Hot-Links list each row shows an inline editable fallback field — changes save automatically on blur
+
+**Export — hot-link replacement option**
+- When exporting (.txt, .md, .docx, .html) a project that contains hot-links, a modal appears with two choices:
+  - **Keep hot-links as plain text** — widget markup is stripped, the full name is used (e.g. "Matthew Triton")
+  - **Replace with fallback names** — each hot-link is replaced with its configured fallback (e.g. "Matt"), falling back to the full name if none was set
+- JSON backup export always preserves hot-links as-is
+- Projects with no hot-link widgets in the content skip the modal and export directly
+
+
+## Version 1.0
+
+### Changes
+
+**Home screen — project type labels**
+- Each project card now shows the Document Style and Research Sub-type (if set) next to the project title
+- Displayed in a smaller, lighter monospace font so it's readable without competing with the title
+- Examples: `Novel`, `Screenplay`, `Research · Academics`, `Research · Pastoral Sermons`
+- Projects with no style set (created before v0.5) show no label — nothing breaks
+- Backend `/api/projects` list now returns `docStyle` and `researchType` from each project's settings
+
+
+## Version 0.9
+
+### Changes
+
+**Bible fetcher — audit and selective repair**
+- On every run the fetcher now performs a full integrity audit before downloading anything
+- For each translation it checks every one of its 1,189 chapters against the canonical count
+- Three conditions trigger a re-fetch for a specific chapter: the chapter key is missing, the chapter was stored as an empty array `[]` from a previous failed fetch, or the chapter has zero verses
+- Only the specific chapters with gaps are re-downloaded — complete chapters are never touched
+- Gaps are displayed as compact chapter ranges (e.g. `Psalms  ch. 12-14, 87, 102`) before fetching begins
+- If any chapters still fail after 5 retries with exponential backoff, they remain as `[]` so the next run picks them up automatically
+- Translations where every chapter is already complete are reported and skipped immediately
+- If all 6 translations are complete the script exits immediately with "Nothing to fetch"
+- `index.json` is rewritten at the end of every run to reflect current state
+
+
 ## Version 0.8
 
 ### Changes
@@ -116,6 +162,9 @@ node /opt/scribeflow/backend/scripts/fetch-bibles.js  # fetch Bible data separat
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 1.1 | 2026-03 | Hot-link fallback names + export replacement |
+| 1.0 | 2026-03 | Project type labels on home screen |
+| 0.9 | 2026-03 | Bible fetcher audit + selective repair |
 | 0.8 | 2026-03 | Bible fetch as separate post-install step |
 | 0.7 | 2026-03 | Bible dropdown navigation, 50% resize cap |
 | 0.6 | 2026-03 | Offline Bible library, local API, all 6 translations bundled |

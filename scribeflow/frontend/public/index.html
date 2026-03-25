@@ -261,7 +261,8 @@
   .project-card:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.12); transform: translateX(3px); }
   .pc-icon { font-size: 28px; flex-shrink: 0; }
   .pc-info { flex: 1; min-width: 0; }
-  .pc-title { font-family: 'Lora', serif; font-size: 16px; color: var(--sidebar-text); font-weight: 600; }
+  .pc-title { font-family: 'Lora', serif; font-size: 16px; color: var(--sidebar-text); font-weight: 600; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .pc-type { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--sidebar-muted); font-weight: 400; letter-spacing: 0.3px; opacity: 0.85; }
   .pc-meta { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--sidebar-muted); margin-top: 3px; }
   .pc-wc { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--accent); flex-shrink: 0; }
   .pc-delete { background: none; border: none; color: var(--sidebar-muted); cursor: pointer; padding: 4px; border-radius: 4px; opacity: 0; transition: opacity 0.15s, color 0.15s; }
@@ -712,6 +713,55 @@
   #editor-wrap.sermon-split #editor-scroll { flex: 1; min-height: 0; }
 
 
+
+  /* ── HL FALLBACK NAME FIELD ── */
+  .hl-page-fallback {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text3);
+    background: transparent; border: none; border-bottom: 1px dashed var(--border);
+    outline: none; width: 90px; padding: 1px 3px; transition: border-color 0.15s, color 0.15s;
+  }
+  .hl-page-fallback:focus { border-bottom-color: var(--accent); color: var(--text); }
+  .hl-page-fallback::placeholder { color: var(--text3); opacity: 0.6; font-style: italic; }
+  .hl-fallback-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text3); white-space: nowrap; }
+  .hl-add-fallback {
+    flex: 1; min-width: 100px; height: 36px; background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 0 10px; font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    color: var(--text); outline: none;
+  }
+  .hl-add-fallback:focus { border-color: var(--accent); }
+  .hl-add-fallback::placeholder { color: var(--text3); font-style: italic; }
+
+  /* ── EXPORT HOTLINK MODAL ── */
+  #export-hl-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 1200;
+    display: none; align-items: center; justify-content: center;
+    -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  }
+  #export-hl-overlay.open { display: flex; }
+  #export-hl-panel {
+    background: var(--bg); border-radius: 12px; width: 420px; max-width: 94vw;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden;
+  }
+  #export-hl-header {
+    padding: 18px 22px 14px; border-bottom: 1px solid var(--border);
+    background: var(--bg2); font-family: 'Lora', serif; font-size: 17px; color: var(--text);
+  }
+  #export-hl-body { padding: 18px 22px; }
+  #export-hl-body p { font-family: 'Crimson Pro', serif; font-size: 14px; color: var(--text2); margin-bottom: 16px; line-height: 1.55; }
+  .export-hl-choice {
+    display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px;
+  }
+  .export-hl-btn {
+    padding: 11px 16px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--bg2); cursor: pointer; text-align: left; transition: all 0.15s;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .export-hl-btn:hover { border-color: var(--accent); background: var(--bg3); }
+  .export-hl-btn .ehb-title { font-size: 13px; color: var(--text); font-weight: 600; margin-bottom: 2px; }
+  .export-hl-btn .ehb-desc  { font-size: 11px; color: var(--text3); font-weight: 400; }
+  .export-hl-cancel { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text3); background: none; border: none; cursor: pointer; padding: 4px; }
+  .export-hl-cancel:hover { color: var(--text); }
+
   /* SCROLLBAR GLOBAL */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -1161,7 +1211,11 @@
               <select id="hl-doc-select" class="hl-doc-picker">
                 <option value="">— link to document —</option>
               </select>
+              <input id="hl-fallback-input" class="hl-add-fallback" type="text" placeholder="Name upon removal…" title="What to replace this hot-link with when exporting without hot-links" />
               <button class="hl-add-btn" id="hl-add-btn">＋ Add Hot-Link</button>
+            </div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);margin-top:6px;margin-bottom:4px;">
+              ↑ <em>Name upon removal</em> — the text substituted in place of this hot-link when exporting without hot-links (e.g. a short name or pronoun). Defaults to the full name if left blank.
             </div>
             <div class="hl-hint">
               💡 Type <code class="hl-code">hl/</code> followed by a name while writing to search — up to 10 matches appear. Use arrow keys to navigate, Enter to insert.
@@ -1201,7 +1255,7 @@
 
 <script>
 // ── VERSION ──
-const APP_VERSION = '0.8';
+const APP_VERSION = '1.1';
 
 const API = '';
 let currentProject = null;
@@ -1250,6 +1304,31 @@ function hideHome() {
   setTimeout(() => { if (hs.style.opacity === '0') hs.style.display = 'none'; }, 220);
 }
 
+// ── PROJECT TYPE LABEL ──────────────────────────────────────────────────
+const DOC_STYLE_LABELS = {
+  novel:      'Novel',
+  screenplay: 'Screenplay',
+  nonfiction: 'Non-Fiction',
+  shortstory: 'Short Story',
+  poetry:     'Poetry',
+  blank:      'Blank',
+  research:   'Research',
+};
+const RESEARCH_TYPE_LABELS = {
+  academics: 'Academics',
+  pastoral:  'Pastoral Sermons',
+};
+
+function projectTypeLabel(docStyle, researchType) {
+  if (!docStyle) return '';
+  const styleLabel = DOC_STYLE_LABELS[docStyle] || docStyle;
+  if (docStyle === 'research' && researchType) {
+    const subLabel = RESEARCH_TYPE_LABELS[researchType] || researchType;
+    return styleLabel + ' · ' + subLabel;   // "Research · Pastoral Sermons"
+  }
+  return styleLabel;
+}
+
 async function loadProjectList(retryCount = 0) {
   const list = document.getElementById('project-list');
   // Show loading state
@@ -1268,7 +1347,7 @@ async function loadProjectList(retryCount = 0) {
       <div class="project-card" data-id="${p.id}">
         <div class="pc-icon">📖</div>
         <div class="pc-info">
-          <div class="pc-title">${escHtml(p.title)}</div>
+          <div class="pc-title">${escHtml(p.title)}${projectTypeLabel(p.docStyle, p.researchType) ? `<span class="pc-type">${escHtml(projectTypeLabel(p.docStyle, p.researchType))}</span>` : ''}</div>
           <div class="pc-meta">Updated ${formatDate(p.updatedAt)}</div>
         </div>
         <span class="pc-wc">${p.wordCount.toLocaleString()} words</span>
@@ -1937,14 +2016,70 @@ document.getElementById('btn-export').addEventListener('click', (e) => {
   const menu = document.getElementById('export-menu');
   menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
 });
+
+// Pending export state — set before the hotlink modal, consumed after
+let _pendingExportFmt = null;
+
+function doExport(fmt, removeHotlinks) {
+  if (!currentProject) return;
+  const qs = removeHotlinks ? '?removeHotlinks=1' : '';
+  window.open(`${API}/api/export/${currentProject.id}/${fmt}${qs}`, '_blank');
+}
+
+function projectHasHotlinks() {
+  const pages = getHlPages();
+  if (!pages.length) return false;
+  // Check if any current document content actually contains hl-widget spans
+  const docs = currentProject ? Object.values(currentProject.documents) : [];
+  return docs.some(d => d.content && d.content.includes('hl-widget'));
+}
+
 document.querySelectorAll('.export-item').forEach(item => {
   item.addEventListener('click', () => {
     if (!currentProject) return alert('Open a project first.');
     const fmt = item.dataset.format;
-    window.open(`${API}/api/export/${currentProject.id}/${fmt}`, '_blank');
     document.getElementById('export-menu').style.display = 'none';
+
+    // JSON backup always exports as-is — no hotlink replacement
+    if (fmt === 'json') { doExport(fmt, false); return; }
+
+    // If there are no hotlinks in the content, export directly
+    if (!projectHasHotlinks()) { doExport(fmt, false); return; }
+
+    // Show the hotlink choice modal
+    _pendingExportFmt = fmt;
+    const overlay = document.getElementById('export-hl-overlay');
+    overlay.style.display = 'flex';
+    requestAnimationFrame(() => overlay.classList.add('open'));
   });
 });
+
+// Hotlink modal buttons
+document.getElementById('export-hl-keep').addEventListener('click', () => {
+  closeExportHlModal();
+  if (_pendingExportFmt) doExport(_pendingExportFmt, false);
+  _pendingExportFmt = null;
+});
+document.getElementById('export-hl-replace').addEventListener('click', () => {
+  closeExportHlModal();
+  if (_pendingExportFmt) doExport(_pendingExportFmt, true);
+  _pendingExportFmt = null;
+});
+document.getElementById('export-hl-cancel').addEventListener('click', () => {
+  closeExportHlModal();
+  _pendingExportFmt = null;
+});
+document.getElementById('export-hl-overlay').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('export-hl-overlay')) {
+    closeExportHlModal();
+    _pendingExportFmt = null;
+  }
+});
+function closeExportHlModal() {
+  const overlay = document.getElementById('export-hl-overlay');
+  overlay.classList.remove('open');
+  setTimeout(() => { if (!overlay.classList.contains('open')) overlay.style.display = 'none'; }, 200);
+}
 
 // ── DARK MODE ──
 document.getElementById('btn-dark-mode').addEventListener('click', () => {
@@ -2397,10 +2532,32 @@ function renderHlPagesList() {
     <div class="hl-page-row">
       <span class="hl-page-type ${p.type}">${p.type === 'character' ? '👤' : p.type === 'place' ? '📍' : '📦'} ${p.type}</span>
       <span class="hl-page-name">${escHtml(p.name)}</span>
+      <span class="hl-fallback-label" title="Name upon removal">→</span>
+      <input class="hl-page-fallback" data-index="${i}" value="${escHtml(p.fallbackName || '')}" placeholder="${escHtml(p.name)}" title="Name upon hot-link removal" />
       <span class="hl-page-doc">${escHtml(getDocTitle(p.docId))}</span>
       <button class="hl-page-del" data-index="${i}" title="Remove">✕</button>
     </div>
   `).join('');
+
+  // Save fallback name on change
+  list.querySelectorAll('.hl-page-fallback').forEach(input => {
+    input.addEventListener('change', () => {
+      const pages = getHlPages();
+      const idx = parseInt(input.dataset.index);
+      if (pages[idx]) {
+        pages[idx].fallbackName = input.value.trim();
+        saveHlPages(pages);
+        // Persist immediately
+        if (currentProject) {
+          fetch(`${API}/api/projects/${currentProject.id}`, {
+            method: 'PUT', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ settings: currentProject.settings, binder: currentProject.binder })
+          });
+        }
+      }
+    });
+  });
+
   list.querySelectorAll('.hl-page-del').forEach(btn => {
     btn.addEventListener('click', () => {
       const pages = getHlPages();
@@ -2436,15 +2593,18 @@ function populateHlDocPicker() {
 }
 
 document.getElementById('hl-add-btn').addEventListener('click', () => {
-  const type = document.getElementById('hl-type-select').value;
-  const docId = document.getElementById('hl-doc-select').value;
+  const type         = document.getElementById('hl-type-select').value;
+  const docId        = document.getElementById('hl-doc-select').value;
+  const fallbackName = document.getElementById('hl-fallback-input').value.trim();
   if (!docId) { alert('Please select a document to link.'); return; }
   const docTitle = getDocTitle(docId);
   const pages = getHlPages();
   if (pages.find(p => p.docId === docId)) { alert('This document is already a hot-link.'); return; }
-  pages.push({ type, name: docTitle, docId });
+  pages.push({ type, name: docTitle, docId, fallbackName: fallbackName || '' });
   saveHlPages(pages);
   renderHlPagesList();
+  // Clear fallback input after adding
+  document.getElementById('hl-fallback-input').value = '';
 });
 
 // ── HOT-LINK AUTOCOMPLETE IN EDITOR ──
@@ -3082,7 +3242,8 @@ async function createQuickDocs(names, type) {
     // Auto-register as a hot-link if not already present
     const alreadyLinked = existingHlPages.some(p => p.docId === doc.id);
     if (!alreadyLinked) {
-      newHlEntries.push({ type: hlType, name, docId: doc.id });
+      // Default fallbackName to the full name — user can edit it in Hot-Links settings
+      newHlEntries.push({ type: hlType, name, docId: doc.id, fallbackName: name });
     }
   }
 
@@ -3457,5 +3618,26 @@ initSettingsListeners();
 document.getElementById('tb-version').textContent = 'v' + APP_VERSION;
 showHome();
 </script>
+<!-- EXPORT HOT-LINK CHOICE MODAL -->
+<div id="export-hl-overlay">
+  <div id="export-hl-panel">
+    <div id="export-hl-header">Export Options</div>
+    <div id="export-hl-body">
+      <p>This project has hot-links. How should they appear in the exported file?</p>
+      <div class="export-hl-choice">
+        <button class="export-hl-btn" id="export-hl-keep">
+          <div class="ehb-title">🔗 Keep hot-links as plain text</div>
+          <div class="ehb-desc">Hot-link widgets are exported as the character/place name (e.g. "Matthew Triton")</div>
+        </button>
+        <button class="export-hl-btn" id="export-hl-replace">
+          <div class="ehb-title">✏️ Replace with fallback names</div>
+          <div class="ehb-desc">Each hot-link is replaced with its "Name upon removal" (e.g. "Matt"), or the full name if none was set</div>
+        </button>
+      </div>
+      <button class="export-hl-cancel" id="export-hl-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
