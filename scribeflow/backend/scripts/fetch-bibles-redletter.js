@@ -141,7 +141,10 @@ function cleanVerseText(raw) {
     // Protect wj markers first
     .replace(/\\wj\*/g,  '[[/wj]]')
     .replace(/\\wj\b/g,  '[[wj]]')
-    // Strip all remaining USFM inline markers (e.g. \nd, \add, \it, \sc, \+nd)
+    // Strip pipe-delimited Strong's / morphology attributes inside word markers
+    // e.g.  "beginning|strong="G0746""  →  "beginning"
+    .replace(/\|[^\\\s>]+="[^"]*"/g, '')
+    // Strip all remaining USFM inline markers (e.g. \nd, \add, \it, \w, \+nd)
     .replace(/\\\+?\w+\*?\s*/g, '')
     // Collapse whitespace
     .replace(/\s+/g, ' ')
