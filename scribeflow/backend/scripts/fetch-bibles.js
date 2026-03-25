@@ -141,6 +141,13 @@ function httpGet(url) {
         res.resume();
         return resolve(httpGet(res.headers.location));
       }
+      if (res.statusCode === 429) {
+        res.resume();
+        // Parse Retry-After header if present (value is seconds)
+        const retryAfter = parseInt(res.headers['retry-after'] || '0', 10);
+        const wait = retryAfter > 0 ? retryAfter * 1000 : 15000;
+        return reject(Object.assign(new Error('HTTP 429'), { isRateLimit: true, wait }));
+      }
       if (res.statusCode !== 200) {
         res.resume();
         return reject(new Error('HTTP ' + res.statusCode));
@@ -272,7 +279,6 @@ async function processTranslation(t) {
         const url  = chapterUrl(book, chapter, t.id);
         const data = await httpGet(url);
 
-        // Parameterized API returns { verses: [{verse_id, book_id, chapter, verse, text}] }
         const verses = Array.isArray(data.verses) ? data.verses : [];
         if (verses.length === 0) throw new Error('Empty response');
 
@@ -280,19 +286,31 @@ async function processTranslation(t) {
           verse: v.verse,
           text:  (v.text || '').trim(),
         }));
-        await sleep(120);
+        // Polite delay between successful requests — bible-api.com rate-limits
+        // at roughly 1 req/sec on the free tier; 1.5 s gives comfortable headroom.
+        await sleep(1500);
         fetched++;
+        // Save every 50 chapters so progress survives an early exit
+        if (fetched % 50 === 0) fs.writeFileSync(filePath, JSON.stringify(bible));
         break;
       } catch (err) {
         retries--;
-        if (retries === 0) {
+        if (err.isRateLimit) {
+          // 429 — back off for the server-suggested time (or 15 s) then retry
+          // WITHOUT consuming a retry slot (so retries++ to undo the decrement)
+          retries++;
+          const wait = err.wait || 15000;
+          process.stdout.write('\n');
+          console.warn('  [429] Rate-limited — waiting ' + (wait / 1000).toFixed(0) + ' s…');
+          await sleep(wait);
+        } else if (retries === 0) {
           process.stdout.write('\n');
           console.warn('  [WARN] ' + t.label + ' ' + BOOK_NAMES[book] + ' ' + chapter + ': ' + err.message);
           bible.books[book].chapters[chapter] = [];
           failed++;
         } else {
           await sleep(backoff);
-          backoff = Math.min(backoff * 2, 8000);
+          backoff = Math.min(backoff * 2, 12000);
         }
       }
     }

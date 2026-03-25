@@ -328,8 +328,7 @@
 
 
   /* ── PROJECT SETTINGS MODAL ── */
-  #settings-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 1100; display: none; align-items: center; justify-content: center; -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); opacity: 0; transition: opacity 0.2s; }
-  #settings-overlay.open { opacity: 1; }
+  #settings-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 1100; display: none; align-items: center; justify-content: center; -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
   #settings-panel {
     background: var(--bg); border-radius: 14px; width: 680px; max-width: 96vw; max-height: 88vh;
     display: flex; flex-direction: column; box-shadow: 0 24px 64px rgba(0,0,0,0.35); overflow: hidden;
@@ -2680,26 +2679,28 @@ function openSettings() {
   openSettings._pendingTab = null; // reset for next open
 
   const overlay = document.getElementById('settings-overlay');
-  // Force display:flex before adding .open so the transition fires correctly
-  // in all browsers (Firefox ignores transitions on display:none elements)
-  overlay.style.display = 'flex';
-  // Tiny rAF delay lets the browser register the display change before
-  // the opacity transition starts — required for Firefox
-  requestAnimationFrame(() => {
+  overlay.style.display    = 'flex';
+  overlay.style.opacity    = '0';
+  overlay.style.transition = 'opacity 0.2s';
+  // Double-rAF ensures the browser has painted display:flex before
+  // the opacity transition starts (required in Firefox and some WebKit builds)
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    overlay.style.opacity = '1';
     overlay.classList.add('open');
-  });
+  }));
   settingsOpen = true;
 }
 
 function closeSettings() {
   const overlay = document.getElementById('settings-overlay');
   overlay.classList.remove('open');
+  overlay.style.opacity = '0';
   settingsOpen = false;
-  // Hide element after CSS transition completes (200ms) so it can't be
-  // accidentally clicked through in Firefox/Safari
   setTimeout(() => {
     if (!overlay.classList.contains('open')) {
-      overlay.style.display = 'none';
+      overlay.style.display   = 'none';
+      overlay.style.opacity   = '';
+      overlay.style.transition = '';
     }
   }, 250);
 }
