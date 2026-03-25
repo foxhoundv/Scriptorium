@@ -152,11 +152,13 @@ function cleanVerseText(raw) {
     // Protect wj markers first — both standard (\wj) and nested (\+wj) forms
     .replace(/\\\+?wj\*/g,  '[[/wj]]')
     .replace(/\\\+?wj\b/g,  '[[wj]]')
-    // Strip pipe-delimited Strong's / morphology attributes inside word markers
-    // e.g.  "beginning|strong="G0746""  →  "beginning"
-    .replace(/\|[^\\\s>]+="[^"]*"/g, '')
-    // Strip all remaining USFM inline markers (e.g. \nd, \add, \it, \w, \+nd)
-    .replace(/\\\+?\w+\*?\s*/g, '')
+    // Strip pipe-delimited word-marker attributes up to the next backslash.
+    // eBible.org format: word|strong="G1234" x-morph="..."\w*
+    // Everything from the | to the closing \ is attributes — remove it all.
+    .replace(/\|[^\\]*/g, '')
+    // Replace all remaining USFM inline markers with a space so words stay
+    // separated (e.g. \w Jesus\w* \w said\w* → Jesus said, not Jesussaid).
+    .replace(/\\\+?\w+\*?\s*/g, ' ')
     // Collapse whitespace
     .replace(/\s+/g, ' ')
     .trim();
