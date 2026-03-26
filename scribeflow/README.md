@@ -87,7 +87,8 @@ Hot-links let you insert inline reference badges while writing that open a chara
 When a Research project's type is set to Pastoral Sermons, the editor splits horizontally:
 
 - **Top pane** — Live Bible scripture viewer
-  - Translation picker: KJV, ASV, WEB, BBE, YLT, Darby *(populated from locally stored data)*
+  - Translation picker: KJV, ASV, WEB, BBE, YLT, Darby, KJV ✦, WEB ✦ *(populated from locally stored data)*
+  - **Red-letter support** — KJV ✦ and WEB ✦ translations show Words of Jesus highlighted in red; a toggle button switches between coloured and plain rendering without reloading
   - Cascading navigation: Testament → Book → Chapter
   - Free-text reference input for verse ranges (e.g. `Romans 8:1-8`, `Psalm 23`)
   - Verse-numbered display; scrolls to top on each new chapter
@@ -213,13 +214,17 @@ PORT=8080 docker compose up -d
 |---------|---------|
 | `scribeflow` | Main application — always running |
 | `bible-fetcher` | One-shot Bible data downloader — run manually after first build |
+| `bible-fetcher-rl` | One-shot red-letter Bible downloader (KJV ✦, WEB ✦) — run manually |
 
 ```bash
 # Start the main app
 docker compose up -d
 
-# Fetch Bible data (run once — see Bible Data Setup)
+# Fetch plain-text Bible data (run once — see Bible Data Setup)
 docker compose run --rm bible-fetcher
+
+# Fetch red-letter Bible data (optional — adds KJV ✦ and WEB ✦)
+docker compose run --rm bible-fetcher-rl
 ```
 
 ### Data volumes
@@ -295,16 +300,18 @@ ScribeFlow includes a built-in Bible scripture viewer for **Pastoral Sermons** p
 
 ### Translations included
 
-| ID | Label | Translation |
-|----|-------|-------------|
-| `kjv` | KJV | King James Version (1769) |
-| `asv` | ASV | American Standard Version (1901) |
-| `web` | WEB | World English Bible (modern, public domain) |
-| `bbe` | BBE | Bible in Basic English (1949/1964) |
-| `ylt` | YLT | Young's Literal Translation (1898) |
-| `darby` | Darby | Darby Translation (1890) |
+| ID | Label | Translation | Source |
+|----|-------|-------------|--------|
+| `kjv` | KJV | King James Version (1769) | bible-api.com |
+| `asv` | ASV | American Standard Version (1901) | bible-api.com |
+| `web` | WEB | World English Bible (modern, public domain) | bible-api.com |
+| `bbe` | BBE | Bible in Basic English (1949/1964) | bible-api.com |
+| `ylt` | YLT | Young's Literal Translation (1898) | bible-api.com |
+| `darby` | Darby | Darby Translation (1890) | bible-api.com |
+| `kjv-rl` | KJV ✦ | King James Version — Red Letter | ebible.org (USFM) |
+| `web-rl` | WEB ✦ | World English Bible — Red Letter | ebible.org (USFM) |
 
-All translations are public domain. Source: [bible-api.com](https://bible-api.com) (Tim Morgan, open source).
+All translations are public domain. Plain-text source: [bible-api.com](https://bible-api.com). Red-letter source: [ebible.org](https://ebible.org) (USFM packages with `\wj` markers).
 
 ### Fetching Bible data — Docker
 
@@ -312,11 +319,14 @@ All translations are public domain. Source: [bible-api.com](https://bible-api.co
 # Start ScribeFlow first
 docker compose up -d
 
-# Then run the fetcher (one-off container — exits when complete)
+# Fetch plain-text translations (one-off container — exits when complete)
 docker compose run --rm bible-fetcher
+
+# Optionally fetch red-letter translations (KJV ✦ and WEB ✦)
+docker compose run --rm bible-fetcher-rl
 ```
 
-Estimated time: 10–20 minutes. Downloads ~25 MB total. The fetcher writes to the `bible_data` volume which the main container also mounts — no restart needed.
+Estimated time: 10–20 minutes for plain-text; a few extra minutes for red-letter. Downloads ~25 MB plain-text + ~10 MB red-letter. Both fetchers write to the `bible_data` volume — no restart needed.
 
 ### Fetching Bible data — LXC
 
@@ -452,7 +462,7 @@ docker compose logs scribeflow | head -40
 Expected startup output:
 ```
 ────────────────────────────────────────────────────────────
-  ScribeFlow  v2.3
+  ScribeFlow  v2.4
 ────────────────────────────────────────────────────────────
   Port           : 3051
   Data directory : /data
@@ -464,7 +474,7 @@ Expected startup output:
   [OK]       "Research Notes" — 5 doc(s), 3,200 words
 ────────────────────────────────────────────────────────────
   Loaded: 3  |  Repaired: 0  |  Corrupt: 0
-  Bible data     : 6 translation(s) ready
+  Bible data     : 6 translation(s) ready  [+ 2 red-letter]
 ────────────────────────────────────────────────────────────
   Listening on http://0.0.0.0:3051
 ```
@@ -613,6 +623,8 @@ Add `?removeHotlinks=1` to any export URL to replace hot-link widgets with each 
   bbe.json
   ylt.json
   darby.json
+  kjv-rl.json      # Red-letter editions (optional — run bible-fetcher-rl)
+  web-rl.json
 ```
 
 For production use, mount `/data` on a NAS or ZFS dataset to enable snapshots and off-site backups.
@@ -653,6 +665,7 @@ server {
 
 | Version | Summary |
 |---------|---------|
+| **2.4** | Red-letter Bible — KJV ✦ and WEB ✦ with Words of Jesus highlighted; `bible-fetcher-rl` service |
 | **2.3** | Scripture pane overflow fix; daily word goal now counts pre-goal writing correctly |
 | **2.2** | Remove Google SSO; local username/password auth; SQLite database for projects + users |
 | **2.1** | Frontend split — EJS templates + static JS files |
