@@ -4,7 +4,7 @@ All notable changes are documented here. Version increments by tenths.
 
 ---
 
-## Version 2.4 *(branch: feature/red-letter)*
+## Version 2.4
 
 ### Feature — Red-Letter Bible (Words of Jesus in Red)
 
@@ -25,6 +25,9 @@ All notable changes are documented here. Version increments by tenths.
 - `.wj` CSS: `color: #c0392b` (light mode), `color: #e05c4a` (dark mode).
 
 **No changes to existing translations** — plain `kjv.json` / `web.json` etc. are untouched; red-letter data is additive.
+
+**docker-compose.yml**
+- Removed the deprecated `version: '3.8'` top-level key; Docker Compose v2+ no longer requires it.
 
 ---
 
@@ -412,6 +415,9 @@ node /opt/scribeflow/backend/scripts/fetch-bibles.js  # fetch Bible data separat
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 2.4 | 2026-03 | Red-letter Bible (KJV ✦, WEB ✦); docker-compose version key removed |
+| 2.3 | 2026-03 | Scripture pane overflow fix; daily word goal pre-goal writing fix |
+| 2.2 | 2026-03 | Remove Google SSO; local username/password auth; SQLite database |
 | 2.1 | 2026-03 | Frontend split — EJS templates + static JS files |
 | 2.0 | 2026-03 | Project Settings modal regression fix |
 | 1.9 | 2026-03 | Bible fetcher 404/429 handling; SSO/settings bug fixes |
