@@ -1,6 +1,6 @@
 {
   "name": "scribeflow-backend",
-  "version": "2.2.0",
+  "version": "2.4.0",
   "description": "ScribeFlow - Self-hosted writing application backend",
   "main": "server.js",
   "scripts": {

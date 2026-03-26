@@ -1,5 +1,5 @@
 ﻿// ── VERSION ──
-const APP_VERSION = '2.3';
+const APP_VERSION = '2.4';
 
 const API = '';
 let currentProject = null;

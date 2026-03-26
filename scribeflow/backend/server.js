@@ -184,7 +184,7 @@ async function startup() {
   const projects = getAllProjects();
 
   console.log(line);
-  console.log('  ScribeFlow  v2.2');
+  console.log('  ScribeFlow  v2.4');
   console.log(line);
   console.log(`  Port           : ${PORT}`);
   console.log(`  Data directory : ${DATA_DIR}`);
